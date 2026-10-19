@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>CoinFire Admin</title>
+  <link rel="icon" href="/assets/icon-256.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/assets/style.css" />
+  <style>
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 18px 0 24px; }
+    .stat { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 16px; }
+    .stat b { display: block; font-family: "Bricolage Grotesque", sans-serif; font-size: 34px; line-height: 1.1; }
+    .stat span { color: var(--muted); font-size: 13px; }
+    .toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+    .toolbar input, .toolbar select { background: var(--card); color: var(--text); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; font: 15px inherit; }
+    .toolbar input { flex: 1 1 240px; }
+    .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 18px; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 860px; }
+    th, td { text-align: left; padding: 12px 14px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+    th { color: var(--muted); font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; background: #121215; }
+    tr:last-child td { border-bottom: 0; }
+    .pill { display: inline-block; padding: 3px 10px; border-radius: 999px; font-weight: 800; font-size: 12px; background: var(--card-hi); }
+    .pill.paid { background: var(--fire); }
+    .pill.courtesy { background: #2563eb; }
+    .muted { color: var(--muted); }
+    .login { max-width: 420px; margin: 60px auto; text-align: center; }
+    .login input { width: 100%; background: var(--card); color: var(--text); border: 1px solid var(--line); border-radius: 999px; padding: 14px 18px; font: 17px inherit; margin: 10px 0; text-align: center; }
+    dialog { background: var(--card); color: var(--text); border: 1px solid var(--line); border-radius: 22px; padding: 24px; max-width: 420px; width: 92vw; }
+    dialog::backdrop { background: #000a; }
+    dialog input, dialog select { width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 12px; padding: 12px; font: 16px inherit; margin: 6px 0 12px; }
+    .row-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <nav>
+      <a class="brand" href="/"><img src="/assets/icon-256.png" alt="" />CoinFire <span class="muted" style="font-weight:600;font-size:16px">· Admin</span></a>
+      <button class="btn small ghost" id="logout" hidden>Sair</button>
+    </nav>
+
+    <!-- Login: 6-digit code by email, only admin emails get data -->
+    <div id="login" class="login card" hidden>
+      <div class="emoji">🔐</div>
+      <h2 style="font-size:28px;margin:8px 0">Área do administrador</h2>
+      <p class="muted">Entre com o seu e-mail de administrador. Enviaremos um código de 6 dígitos.</p>
+      <div id="step-email">
+        <input id="email" type="email" placeholder="seu@email.com" autocomplete="email" />
+        <button class="btn" id="send" style="width:100%">Enviar código</button>
+      </div>
+      <div id="step-code" hidden>
+        <input id="code" inputmode="numeric" maxlength="6" placeholder="000000" autocomplete="one-time-code" style="font-size:28px;letter-spacing:8px" />
+        <button class="btn" id="verify" style="width:100%">Entrar</button>
+      </div>
+      <div class="msg" id="login-msg"></div>
+    </div>
+
+    <div id="app" hidden>
+      <div class="stats" id="stats"></div>
+      <div class="toolbar">
+        <input id="q" placeholder="Buscar por e-mail, nome ou código…" />
+        <select id="filter">
+          <option value="all">Todos</option>
+          <option value="paying">Pagantes</option>
+          <option value="courtesy">Cortesia</option>
+          <option value="free">Grátis</option>
+          <option value="registered">Com conta</option>
+        </select>
+        <button class="btn small ghost" id="reload">Atualizar</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Usuário</th><th>Plano</th><th>Válido até</th><th>Indicações</th><th>Idioma</th><th>Desde</th><th>Último uso</th><th></th></tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+      <p class="muted" style="font-size:13px;margin-top:10px">Usuários sem e-mail ainda não criaram conta (usam o app como visitante).</p>
+    </div>
+  </div>
+
+  <dialog id="courtesy-dlg">
+    <h3 style="margin:0 0 6px">🎁 Dar cortesia</h3>
+    <p class="muted" id="c-who" style="margin:0 0 14px"></p>
+    <label class="muted">Duração</label>
+    <select id="c-days">
+      <option value="7">7 dias</option>
+      <option value="30" selected>1 mês</option>
+      <option value="90">3 meses</option>
+      <option value="180">6 meses</option>
+      <option value="365">1 ano</option>
+      <option value="36500">Para sempre</option>
+    </select>
+    <label class="muted">Observação (opcional)</label>
+    <input id="c-note" placeholder="Ex.: funcionário, parceiro, influenciador…" />
+    <div class="row-actions">
+      <button class="btn small ghost" id="c-cancel">Cancelar</button>
+      <button class="btn small" id="c-save">Dar cortesia</button>
+    </div>
+  </dialog>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
+  <script src="/assets/config.js"></script>
+  <script>
+    const db = supabase.createClient(COINFIRE.supabaseUrl, COINFIRE.supabaseKey);
+    const $ = (id) => document.getElementById(id);
+    let users = [];
+    let editing = null;
+
+    const fmtDate = (d) => (d ? new Date(d).toLocaleDateString('pt-BR') : '—');
+    const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+
+    async function api(action, extra = {}) {
+      const { data: s } = await db.auth.getSession();
+      const res = await fetch(`${COINFIRE.supabaseUrl}/functions/v1/admin`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: COINFIRE.supabaseKey, Authorization: `Bearer ${s.session?.access_token}` },
+        body: JSON.stringify({ action, ...extra }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || res.status);
+      return json;
+    }
+
+    function showLogin(message) {
+      $('app').hidden = true;
+      $('logout').hidden = true;
+      $('login').hidden = false;
+      $('login-msg').className = 'msg err';
+      $('login-msg').textContent = message || '';
+    }
+
+    async function load() {
+      try {
+        const { stats, users: list } = await api('users');
+        users = list;
+        $('login').hidden = true;
+        $('app').hidden = false;
+        $('logout').hidden = false;
+        $('stats').innerHTML = [
+          ['Usuários', stats.total],
+          ['Com conta', stats.registered],
+          ['Pagantes', stats.paying],
+          ['Mensal', stats.monthly],
+          ['Anual', stats.annual],
+          ['Cortesia', stats.courtesy],
+          ['Ativos 7 dias', stats.activeLast7],
+          ['Receita/mês (est.)', '$' + (stats.monthly * 5.99 + stats.annual * 2.5).toFixed(0)],
+        ].map(([l, v]) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`).join('');
+        render();
+      } catch (e) {
+        showLogin(e.message === 'forbidden' ? 'Este e-mail não tem acesso de administrador.' : '');
+      }
+    }
+
+    function render() {
+      const q = $('q').value.trim().toLowerCase();
+      const f = $('filter').value;
+      const list = users.filter((u) => {
+        if (q && ![u.email, u.name, u.referral_code].some((x) => String(x ?? '').toLowerCase().includes(q))) return false;
+        if (f === 'paying') return u.premium && !u.courtesy;
+        if (f === 'courtesy') return u.courtesy;
+        if (f === 'free') return !u.premium;
+        if (f === 'registered') return !!u.email;
+        return true;
+      });
+      $('rows').innerHTML = list.map((u) => {
+        const plan = u.courtesy ? '<span class="pill courtesy">Cortesia</span>'
+          : u.premium ? `<span class="pill paid">${u.plan === 'annual' ? 'Anual' : 'Mensal'}</span>`
+          : '<span class="pill">Grátis</span>';
+        const until = u.courtesy ? u.courtesy_until : u.premium_until;
+        const who = u.email ? `<b>${esc(u.email)}</b>` : '<span class="muted">Visitante</span>';
+        return `<tr>
+          <td>${who}<br><span class="muted">${esc(u.name || '')} · código ${esc(u.referral_code)}</span>${u.courtesy_note ? `<br><span class="muted">📝 ${esc(u.courtesy_note)}</span>` : ''}</td>
+          <td>${plan}</td>
+          <td>${fmtDate(until)}</td>
+          <td>${u.invited.joined} entraram · ${u.invited.subscribed} assinaram</td>
+          <td>${esc(u.language || '—')} ${esc(u.currency || '')}</td>
+          <td>${fmtDate(u.created_at)}</td>
+          <td>${fmtDate(u.last_seen_at)}</td>
+          <td style="white-space:nowrap">
+            <button class="btn small" data-give="${u.id}">🎁 Cortesia</button>
+            ${u.courtesy ? `<button class="btn small ghost" data-remove="${u.id}">Remover</button>` : ''}
+          </td>
+        </tr>`;
+      }).join('') || '<tr><td colspan="8" class="muted">Nenhum usuário encontrado.</td></tr>';
+    }
+
+    $('rows').addEventListener('click', async (e) => {
+      const give = e.target.closest('[data-give]');
+      const remove = e.target.closest('[data-remove]');
+      if (give) {
+        editing = users.find((u) => u.id === give.dataset.give);
+        $('c-who').textContent = editing.email || `Visitante · código ${editing.referral_code}`;
+        $('c-note').value = editing.courtesy_note || '';
+        $('courtesy-dlg').showModal();
+      }
+      if (remove && confirm('Remover a cortesia deste usuário?')) {
+        await api('courtesy', { userId: remove.dataset.remove, days: 0 });
+        load();
+      }
+    });
+    $('c-cancel').onclick = () => $('courtesy-dlg').close();
+    $('c-save').onclick = async () => {
+      await api('courtesy', { userId: editing.id, days: Number($('c-days').value), note: $('c-note').value });
+      $('courtesy-dlg').close();
+      load();
+    };
+    $('q').oninput = render;
+    $('filter').onchange = render;
+    $('reload').onclick = load;
+    $('logout').onclick = async () => { await db.auth.signOut(); showLogin(); };
+
+    $('send').onclick = async () => {
+      const email = $('email').value.trim().toLowerCase();
+      const { error } = await db.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+      if (error) {
+        $('login-msg').className = 'msg err';
+        $('login-msg').textContent = 'Não foi possível enviar o código. Confira o e-mail e tente de novo em alguns minutos.';
+        return;
+      }
+      $('step-email').hidden = true;
+      $('step-code').hidden = false;
+      $('login-msg').className = 'msg ok';
+      $('login-msg').textContent = `Código enviado para ${email}`;
+    };
+    $('verify').onclick = async () => {
+      const { error } = await db.auth.verifyOtp({ email: $('email').value.trim().toLowerCase(), token: $('code').value.trim(), type: 'email' });
+      if (error) {
+        $('login-msg').className = 'msg err';
+        $('login-msg').textContent = 'Código inválido ou expirado.';
+        return;
+      }
+      load();
+    };
+
+    db.auth.getSession().then(({ data }) => (data.session ? load() : showLogin()));
+  </script>
+</body>
+</html>

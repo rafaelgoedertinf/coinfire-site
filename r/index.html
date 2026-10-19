@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>You're invited to CoinFire</title>
+  <meta property="og:title" content="A friend invited you to CoinFire 🔥" />
+  <meta property="og:description" content="Get roasted by an AI over your spending and get 7 free days." />
+  <meta property="og:image" content="/assets/icon.png" />
+  <link rel="icon" href="/assets/icon-256.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/assets/style.css" />
+</head>
+<body class="ember-bg" style="min-height:100vh">
+  <div class="wrap" style="max-width:560px">
+    <nav>
+      <a class="brand" href="/"><img src="/assets/icon-256.png" alt="" />CoinFire</a>
+      <div class="lang">
+        <button data-lang="en" onclick="setLang('en', DICT)">EN</button>
+        <button data-lang="pt" onclick="setLang('pt', DICT)">PT</button>
+      </div>
+    </nav>
+    <div style="text-align:center;padding:40px 0 60px">
+      <img src="/assets/icon.png" alt="" style="width:120px;border-radius:28px;box-shadow:0 20px 80px #ff5a1f66" />
+      <h1 style="font-size:42px;line-height:1.05;margin:26px 0 10px" data-i18n="h">A friend invited you to get roasted 🔥</h1>
+      <p style="color:var(--muted);font-size:18px" data-i18n="p">CoinFire is the AI that roasts your spending and helps you save real money. Use your friend's code in the app and get <b>7 free days</b>.</p>
+      <div class="card" style="margin:26px 0;border-color:var(--fire);border-style:dashed">
+        <div style="color:var(--muted);font-size:14px" data-i18n="code">Invite code</div>
+        <div id="code" class="display" style="font-size:46px;letter-spacing:8px;font-weight:800">------</div>
+        <button class="btn small ghost" id="copy" data-i18n="copy">Copy code</button>
+      </div>
+      <a class="btn" id="get" href="/#join" data-i18n="get">Get CoinFire</a>
+      <p class="fine" data-i18n="how">In the app: Me → "I have an invite code".</p>
+    </div>
+  </div>
+  <script src="/assets/config.js"></script>
+  <script src="/assets/i18n.js"></script>
+  <script>
+    const DICT = {
+      en: { _title: "You're invited to CoinFire" },
+      pt: {
+        _title: 'Você foi convidado para o CoinFire',
+        h: 'Um amigo te convidou pra ser zoado 🔥',
+        p: 'O CoinFire é a IA que zoa seus gastos e te ajuda a economizar de verdade. Use o código do seu amigo no app e ganhe <b>7 dias grátis</b>.',
+        code: 'Código de convite', copy: 'Copiar código', get: 'Baixar o CoinFire',
+        how: 'No app: Você → "Tenho um código de convite".',
+      },
+    };
+    document.querySelectorAll('[data-i18n]').forEach((el) => (DICT.en[el.dataset.i18n] ??= el.innerHTML));
+    applyI18n(DICT);
+
+    // /r/ABC123 → ABC123
+    const code = (location.pathname.split('/r/')[1] || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 12);
+    document.getElementById('code').textContent = code || '------';
+    try { sessionStorage.setItem('ref', code); } catch {}
+    if (COINFIRE.appStoreUrl) document.getElementById('get').href = COINFIRE.appStoreUrl;
+    document.getElementById('copy').onclick = async () => {
+      try { await navigator.clipboard.writeText(code); } catch {}
+      document.getElementById('copy').textContent = LANG === 'pt' ? 'Copiado ✓' : 'Copied ✓';
+    };
+  </script>
+</body>
+</html>

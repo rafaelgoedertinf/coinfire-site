@@ -38,21 +38,30 @@
   <div class="wrap">
     <nav>
       <a class="brand" href="/"><img src="/assets/icon-256.png" alt="" />CoinFire <span class="muted" style="font-weight:600;font-size:16px">· Admin</span></a>
-      <button class="btn small ghost" id="logout" hidden>Sair</button>
+      <span><button class="btn small ghost" id="setpw" hidden>Trocar senha</button> <button class="btn small ghost" id="logout" hidden>Sair</button></span>
     </nav>
 
-    <!-- Login: 6-digit code by email, only admin emails get data -->
+    <!-- Login: e-mail + password; first access / forgot password goes through an e-mailed link -->
     <div id="login" class="login card" hidden>
       <div class="emoji">🔐</div>
       <h2 style="font-size:28px;margin:8px 0">Área do administrador</h2>
-      <p class="muted">Entre com o seu e-mail de administrador. Enviaremos um código de 6 dígitos.</p>
-      <div id="step-email">
-        <input id="email" type="email" placeholder="seu@email.com" autocomplete="email" />
-        <button class="btn" id="send" style="width:100%">Enviar código</button>
+      <div id="step-login">
+        <p class="muted">Entre com o seu e-mail e senha de administrador.</p>
+        <input id="email" type="email" placeholder="seu@email.com" autocomplete="username" />
+        <input id="password" type="password" placeholder="Senha" autocomplete="current-password" />
+        <button class="btn" id="signin" style="width:100%">Entrar</button>
+        <p><a href="#" id="forgot" class="muted" style="font-size:14px">Primeiro acesso ou esqueci a senha</a></p>
       </div>
       <div id="step-code" hidden>
+        <p class="muted" id="code-info"></p>
         <input id="code" inputmode="numeric" maxlength="6" placeholder="000000" autocomplete="one-time-code" style="font-size:28px;letter-spacing:8px" />
-        <button class="btn" id="verify" style="width:100%">Entrar</button>
+        <button class="btn" id="verify" style="width:100%">Continuar</button>
+      </div>
+      <div id="step-new" hidden>
+        <p class="muted">Crie a sua senha (mínimo 8 caracteres).</p>
+        <input id="new1" type="password" placeholder="Nova senha" autocomplete="new-password" />
+        <input id="new2" type="password" placeholder="Repita a senha" autocomplete="new-password" />
+        <button class="btn" id="savepw" style="width:100%">Salvar senha</button>
       </div>
       <div class="msg" id="login-msg"></div>
     </div>
@@ -129,6 +138,10 @@
       $('app').hidden = true;
       $('logout').hidden = true;
       $('login').hidden = false;
+      $('setpw').hidden = true;
+      $('step-login').hidden = false;
+      $('step-code').hidden = true;
+      $('step-new').hidden = true;
       $('login-msg').className = 'msg err';
       $('login-msg').textContent = message || '';
     }
@@ -140,6 +153,7 @@
         $('login').hidden = true;
         $('app').hidden = false;
         $('logout').hidden = false;
+        $('setpw').hidden = false;
         $('stats').innerHTML = [
           ['Usuários', stats.total],
           ['Com conta', stats.registered],
@@ -214,27 +228,46 @@
     $('reload').onclick = load;
     $('logout').onclick = async () => { await db.auth.signOut(); showLogin(); };
 
-    $('send').onclick = async () => {
+    const say = (text, ok) => { $('login-msg').className = ok ? 'msg ok' : 'msg err'; $('login-msg').textContent = text; };
+    const showStep = (step) => { $('login').hidden = false; $('app').hidden = true; $('step-login').hidden = step !== 'login'; $('step-code').hidden = step !== 'code'; $('step-new').hidden = step !== 'new'; };
+
+    $('signin').onclick = async () => {
       const email = $('email').value.trim().toLowerCase();
-      const { error } = await db.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
-      if (error) {
-        $('login-msg').className = 'msg err';
-        $('login-msg').textContent = 'Não foi possível enviar o código. Confira o e-mail e tente de novo em alguns minutos.';
-        return;
-      }
-      $('step-email').hidden = true;
-      $('step-code').hidden = false;
-      $('login-msg').className = 'msg ok';
-      $('login-msg').textContent = `Código enviado para ${email}`;
+      const { error } = await db.auth.signInWithPassword({ email, password: $('password').value });
+      if (error) return say('E-mail ou senha incorretos.');
+      say('');
+      load();
+    };
+    $('password').onkeydown = (e) => { if (e.key === 'Enter') $('signin').click(); };
+
+    // First access / forgot password: 6-digit code by e-mail, then create the password
+    $('forgot').onclick = async (e) => {
+      e.preventDefault();
+      const email = $('email').value.trim().toLowerCase();
+      if (!email) return say('Digite o seu e-mail primeiro.');
+      const { error } = await db.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
+      if (error) return say('Não foi possível enviar agora. Tente de novo em alguns minutos.');
+      say('');
+      $('code-info').textContent = `Enviamos um código de 6 dígitos para ${email}. Se não aparecer, veja a pasta Lixo Eletrônico / Spam.`;
+      showStep('code');
     };
     $('verify').onclick = async () => {
       const { error } = await db.auth.verifyOtp({ email: $('email').value.trim().toLowerCase(), token: $('code').value.trim(), type: 'email' });
-      if (error) {
-        $('login-msg').className = 'msg err';
-        $('login-msg').textContent = 'Código inválido ou expirado.';
-        return;
-      }
-      load();
+      if (error) return say('Código inválido ou expirado.');
+      say('');
+      showStep('new');
+    };
+
+    $('setpw').onclick = () => { say(''); showStep('new'); };
+    $('savepw').onclick = async () => {
+      const a = $('new1').value, b = $('new2').value;
+      if (a.length < 8) return say('A senha precisa ter pelo menos 8 caracteres.');
+      if (a !== b) return say('As duas senhas não são iguais.');
+      const { error } = await db.auth.updateUser({ password: a });
+      if (error) return say('Não foi possível salvar: ' + error.message);
+      $('new1').value = $('new2').value = '';
+      say('Senha salva! Agora você entra com e-mail e senha em qualquer computador.', true);
+      setTimeout(load, 1500);
     };
 
     db.auth.getSession().then(({ data }) => (data.session ? load() : showLogin()));

@@ -47,6 +47,9 @@
     table.small { min-width: 640px; }
     .pill.trial { background: #7c3aed; } .pill.bad { background: #3f1d1d; color: #fca5a5; }
     .note { font-size: 13px; margin-top: 8px; }
+    .bulk { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; background: var(--card-hi); border: 1px solid var(--line); border-radius: 14px; padding: 10px 14px; margin-bottom: 12px; position: sticky; top: 56px; z-index: 4; }
+    .btn.danger { background: #b91c1c; }
+    tr.sel td { background: #1d1310; }
   </style>
 </head>
 <body>
@@ -92,6 +95,7 @@
           <option value="3650">Tudo</option>
         </select>
         <label class="check"><input type="checkbox" id="sandbox" /> Incluir compras de teste (sandbox)</label>
+        <label class="check"><input type="checkbox" id="showtest" /> Mostrar contas de teste</label>
         <span style="flex:1"></span>
         <span class="muted" id="updated" style="font-size:13px"></span>
         <button class="btn small ghost" id="reload">Atualizar</button>
@@ -165,10 +169,17 @@
         </select>
         <span class="muted" id="count" style="font-size:13px"></span>
       </div>
+      <div class="bulk" id="bulk" hidden>
+        <b id="bulk-n"></b>
+        <button class="btn small" id="b-test">🧪 Marcar como teste</button>
+        <button class="btn small ghost" id="b-untest">Desmarcar teste</button>
+        <button class="btn small danger" id="b-del">🗑️ Excluir definitivamente</button>
+        <button class="btn small ghost" id="b-clear">Limpar seleção</button>
+      </div>
       <div class="table-wrap">
         <table>
           <thead>
-            <tr><th>Usuário</th><th>Plano</th><th>Assinou em</th><th>Válido até</th><th>Indicações</th><th>Idioma</th><th>Desde</th><th>Último uso</th><th></th></tr>
+            <tr><th><input type="checkbox" id="all" title="Selecionar todos da lista" /></th><th>Usuário</th><th>Plano</th><th>Assinou em</th><th>Válido até</th><th>Indicações</th><th>Idioma</th><th>Desde</th><th>Último uso</th><th></th></tr>
           </thead>
           <tbody id="rows"></tbody>
         </table>
@@ -254,7 +265,10 @@
     const isTrialEvent = (e) => e.period_type === 'TRIAL';
     const isPaidEvent = (e) => ['INITIAL_PURCHASE', 'RENEWAL', 'PRODUCT_CHANGE'].includes(e.type) && !isTrialEvent(e) && Number(e.price_usd) > 0;
     const planOf = (productId = '') => (productId.includes('annual') || productId.includes('year') ? 'annual' : 'monthly');
-    const events = () => data.events.filter((e) => $('sandbox').checked || e.environment !== 'SANDBOX');
+    const testIds = () => new Set($('showtest').checked ? [] : data.users.filter((u) => u.is_test).map((u) => u.id));
+    const events = () => { const t = testIds(); return data.events.filter((e) => ($('sandbox').checked || e.environment !== 'SANDBOX') && !t.has(e.user_id)); };
+    const selected = new Set();
+    let visible = [];
     const stat = (label, value, hint) => `<div class="stat"><b>${value}</b><span>${label}</span>${hint ? `<small>${hint}</small>` : ''}</div>`;
 
     // Daily series for the chosen period (max 90 bars; "Tudo" shows the last 90 days)
@@ -385,6 +399,8 @@
     }
 
     function render() {
+      const showTest = $('showtest').checked;
+      users = data.users.filter((u) => showTest || !u.is_test);
       renderStats();
       renderEvents();
       const q = $('q').value.trim().toLowerCase();
@@ -412,8 +428,9 @@
           : '<span class="pill">Grátis</span>';
         const until = u.courtesy ? u.courtesy_until : u.premium_until;
         const who = u.email ? `<b>${esc(u.email)}</b>` : '<span class="muted">Visitante</span>';
-        return `<tr>
-          <td>${who}<br><span class="muted">${esc(u.name || '')} · código ${esc(u.referral_code)}</span>${u.courtesy_note ? `<br><span class="muted">📝 ${esc(u.courtesy_note)}</span>` : ''}</td>
+        return `<tr class="${selected.has(u.id) ? 'sel' : ''}">
+          <td><input type="checkbox" data-pick="${u.id}" ${selected.has(u.id) ? 'checked' : ''} /></td>
+          <td>${who}${u.is_test ? ' <span class="pill">🧪 teste</span>' : ''}<br><span class="muted">${esc(u.name || '')} · código ${esc(u.referral_code)}</span>${u.courtesy_note ? `<br><span class="muted">📝 ${esc(u.courtesy_note)}</span>` : ''}</td>
           <td>${plan}</td>
           <td>${fmtDate(u.subscribed_at)}</td>
           <td>${fmtDate(until)}</td>
@@ -426,7 +443,11 @@
             ${u.courtesy ? `<button class="btn small ghost" data-remove="${u.id}">Remover</button>` : ''}
           </td>
         </tr>`;
-      }).join('') || '<tr><td colspan="9" class="muted">Nenhum usuário encontrado.</td></tr>';
+      }).join('') || '<tr><td colspan="10" class="muted">Nenhum usuário encontrado.</td></tr>';
+      visible = list;
+      $('all').checked = list.length > 0 && list.every((u) => selected.has(u.id));
+      $('bulk').hidden = selected.size === 0;
+      $('bulk-n').textContent = `${selected.size} selecionado${selected.size > 1 ? 's' : ''}`;
     }
 
     $('rows').addEventListener('click', async (e) => {
@@ -443,6 +464,29 @@
         load();
       }
     });
+    $('rows').addEventListener('change', (e) => {
+      const pick = e.target.closest('[data-pick]');
+      if (!pick) return;
+      pick.checked ? selected.add(pick.dataset.pick) : selected.delete(pick.dataset.pick);
+      render();
+    });
+    $('all').onchange = () => { visible.forEach((u) => ($('all').checked ? selected.add(u.id) : selected.delete(u.id))); render(); };
+    $('b-clear').onclick = () => { selected.clear(); render(); };
+    async function markTest(value) {
+      await api('mark_test', { userIds: [...selected], value });
+      selected.clear();
+      load();
+    }
+    $('b-test').onclick = () => markTest(true);
+    $('b-untest').onclick = () => markTest(false);
+    $('b-del').onclick = async () => {
+      const n = selected.size;
+      if (!confirm(`Excluir ${n} usuário${n > 1 ? 's' : ''} para sempre?\n\nIsso apaga a conta, o backup e o histórico deles e NÃO pode ser desfeito. Se a pessoa ainda usa o app, ela perde os dados salvos na nuvem.\n\nSe só quer tirar dos números, use "Marcar como teste".`)) return;
+      const { deleted } = await api('delete_users', { userIds: [...selected] });
+      selected.clear();
+      alert(`${deleted} usuário${deleted === 1 ? '' : 's'} excluído${deleted === 1 ? '' : 's'}.`);
+      load();
+    };
     $('c-cancel').onclick = () => $('courtesy-dlg').close();
     $('c-save').onclick = async () => {
       await api('courtesy', { userId: editing.id, days: Number($('c-days').value), note: $('c-note').value });
@@ -450,7 +494,7 @@
       load();
     };
     $('q').oninput = render;
-    ['filter', 'lang', 'sort', 'period', 'sandbox', 'ev-type', 'ev-store'].forEach((id) => ($(id).onchange = render));
+    ['filter', 'lang', 'sort', 'period', 'sandbox', 'showtest', 'ev-type', 'ev-store'].forEach((id) => ($(id).onchange = render));
     $('reload').onclick = load;
     $('logout').onclick = async () => { await db.auth.signOut(); showLogin(); };
 

@@ -32,6 +32,21 @@
     dialog::backdrop { background: #000a; }
     dialog input, dialog select { width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 12px; padding: 12px; font: 16px inherit; margin: 6px 0 12px; }
     .row-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px; }
+    .sec { margin: 26px 0 0; font-size: 18px; }
+    .stat small { display: block; color: var(--muted); font-size: 12px; margin-top: 4px; }
+    .stat.good b { color: #34d399; } .stat.bad b { color: #f87171; }
+    .sticky { position: sticky; top: 0; z-index: 5; background: var(--bg); padding: 10px 0; }
+    .check { display: flex; gap: 6px; align-items: center; color: var(--muted); font-size: 14px; white-space: nowrap; }
+    .toolbar .check input { flex: none; width: auto; padding: 0; }
+    .charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; margin-top: 22px; }
+    .chart { padding: 16px; } .chart h4 { margin: 0 0 12px; font-size: 15px; }
+    .bars { display: flex; align-items: flex-end; gap: 2px; height: 120px; position: relative; padding-bottom: 20px; }
+    .bar { flex: 1; height: 100%; display: flex; align-items: flex-end; } .bar i { display: block; width: 100%; background: var(--fire); border-radius: 3px 3px 0 0; }
+    .bar:hover i { background: #ffb13d; }
+    .axis { position: absolute; left: 0; right: 0; bottom: 0; display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); }
+    table.small { min-width: 640px; }
+    .pill.trial { background: #7c3aed; } .pill.bad { background: #3f1d1d; color: #fca5a5; }
+    .note { font-size: 13px; margin-top: 8px; }
   </style>
 </head>
 <body>
@@ -67,27 +82,98 @@
     </div>
 
     <div id="app" hidden>
-      <div class="stats" id="stats"></div>
+      <div class="toolbar sticky">
+        <label class="muted">Período</label>
+        <select id="period">
+          <option value="1">Hoje</option>
+          <option value="7">Últimos 7 dias</option>
+          <option value="30" selected>Últimos 30 dias</option>
+          <option value="90">Últimos 90 dias</option>
+          <option value="3650">Tudo</option>
+        </select>
+        <label class="check"><input type="checkbox" id="sandbox" /> Incluir compras de teste (sandbox)</label>
+        <span style="flex:1"></span>
+        <span class="muted" id="updated" style="font-size:13px"></span>
+        <button class="btn small ghost" id="reload">Atualizar</button>
+      </div>
+
+      <h3 class="sec">💰 Dinheiro</h3>
+      <div class="stats" id="money"></div>
+      <h3 class="sec">⭐ Assinaturas</h3>
+      <div class="stats" id="subs"></div>
+      <h3 class="sec">👥 Usuários</h3>
+      <div class="stats" id="people"></div>
+
+      <div class="charts">
+        <div class="chart card"><h4>Custo de IA por dia <span class="muted" id="ai-total"></span></h4><div class="bars" id="ch-ai"></div></div>
+        <div class="chart card"><h4>Novos usuários por dia</h4><div class="bars" id="ch-users"></div></div>
+        <div class="chart card"><h4>Assinaturas novas por dia</h4><div class="bars" id="ch-subs"></div></div>
+      </div>
+
+      <h3 class="sec">🤖 Custo de IA por função</h3>
+      <div class="table-wrap"><table class="small">
+        <thead><tr><th>Função</th><th>Chamadas</th><th>Custo</th><th>Custo por chamada</th><th>% do total</th></tr></thead>
+        <tbody id="ai-rows"></tbody>
+      </table></div>
+      <p class="muted note">Custo estimado pelos tokens usados (preço oficial da Anthropic). O detalhe por função começou em 24/10/2026; antes disso só existe o total por dia.</p>
+
+      <h3 class="sec">🧾 Histórico de assinaturas</h3>
+      <div class="toolbar">
+        <select id="ev-type">
+          <option value="all">Todos os eventos</option>
+          <option value="new">Novas assinaturas (pagas)</option>
+          <option value="trial">Começou teste grátis</option>
+          <option value="renewal">Renovações / teste virou pago</option>
+          <option value="cancel">Cancelamentos</option>
+          <option value="expire">Expiradas</option>
+        </select>
+        <select id="ev-store">
+          <option value="all">Todas as lojas</option>
+          <option value="APP_STORE">App Store (iPhone)</option>
+          <option value="PLAY_STORE">Google Play (Android)</option>
+        </select>
+      </div>
+      <div class="table-wrap"><table class="small">
+        <thead><tr><th>Quando</th><th>Usuário</th><th>Evento</th><th>Plano</th><th>Valor</th><th>Loja</th><th>Válido até</th></tr></thead>
+        <tbody id="ev-rows"></tbody>
+      </table></div>
+      <p class="muted note">Valores em dólar, antes da taxa da Apple/Google (15% a 30%). Registro automático a partir de 24/10/2026.</p>
+
+      <h3 class="sec">📋 Usuários</h3>
       <div class="toolbar">
         <input id="q" placeholder="Buscar por e-mail, nome ou código…" />
         <select id="filter">
           <option value="all">Todos</option>
           <option value="paying">Pagantes</option>
+          <option value="trial">Em teste grátis</option>
           <option value="courtesy">Cortesia</option>
           <option value="free">Grátis</option>
           <option value="registered">Com conta</option>
+          <option value="guest">Visitantes (sem conta)</option>
+          <option value="new">Entraram no período</option>
+          <option value="active">Ativos nos últimos 7 dias</option>
         </select>
-        <button class="btn small ghost" id="reload">Atualizar</button>
+        <select id="lang">
+          <option value="all">Todos os idiomas</option>
+          <option value="en">Inglês</option>
+          <option value="pt">Português</option>
+        </select>
+        <select id="sort">
+          <option value="created">Mais recentes</option>
+          <option value="seen">Último uso</option>
+          <option value="subscribed">Assinou mais recente</option>
+        </select>
+        <span class="muted" id="count" style="font-size:13px"></span>
       </div>
       <div class="table-wrap">
         <table>
           <thead>
-            <tr><th>Usuário</th><th>Plano</th><th>Válido até</th><th>Indicações</th><th>Idioma</th><th>Desde</th><th>Último uso</th><th></th></tr>
+            <tr><th>Usuário</th><th>Plano</th><th>Assinou em</th><th>Válido até</th><th>Indicações</th><th>Idioma</th><th>Desde</th><th>Último uso</th><th></th></tr>
           </thead>
           <tbody id="rows"></tbody>
         </table>
       </div>
-      <p class="muted" style="font-size:13px;margin-top:10px">Usuários sem e-mail ainda não criaram conta (usam o app como visitante).</p>
+      <p class="muted note">Usuários sem e-mail ainda não criaram conta (usam o app como visitante).</p>
     </div>
   </div>
 
@@ -146,43 +232,182 @@
       $('login-msg').textContent = message || '';
     }
 
+    const DAY = 864e5;
+    const PRICE = { monthly: 5.99, annual: 29.99 };
+    const FEATURES = { roast: 'Roast inicial (análise do extrato)', log: 'Registrar gasto (voz/texto)', month: 'Nota do mês', checkin: 'Check-in do dia', nudges: 'Lembretes' };
+    const EVENTS = {
+      INITIAL_PURCHASE: 'Assinou', RENEWAL: 'Renovou', CANCELLATION: 'Cancelou', EXPIRATION: 'Expirou',
+      UNCANCELLATION: 'Desistiu de cancelar', PRODUCT_CHANGE: 'Trocou de plano', BILLING_ISSUE: 'Problema no pagamento', TEST: 'Teste do RevenueCat',
+    };
+    let data = { users: [], aiDaily: [], aiByAction: [], events: [] };
+    let loadedAt = 0;
+
+    const usd = (n, d = 2) => '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+    const fmtDateTime = (d) => new Date(d).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+    const dayKey = (d) => new Date(d).toLocaleDateString('sv-SE'); // YYYY-MM-DD in local time
+    const periodDays = () => Number($('period').value);
+    const periodStart = () => {
+      const d = new Date(); d.setHours(0, 0, 0, 0);
+      return d.getTime() - (periodDays() - 1) * DAY;
+    };
+    const inPeriod = (d) => d && Date.parse(d) >= periodStart();
+    const isTrialEvent = (e) => e.period_type === 'TRIAL';
+    const isPaidEvent = (e) => ['INITIAL_PURCHASE', 'RENEWAL', 'PRODUCT_CHANGE'].includes(e.type) && !isTrialEvent(e) && Number(e.price_usd) > 0;
+    const planOf = (productId = '') => (productId.includes('annual') || productId.includes('year') ? 'annual' : 'monthly');
+    const events = () => data.events.filter((e) => $('sandbox').checked || e.environment !== 'SANDBOX');
+    const stat = (label, value, hint) => `<div class="stat"><b>${value}</b><span>${label}</span>${hint ? `<small>${hint}</small>` : ''}</div>`;
+
+    // Daily series for the chosen period (max 90 bars; "Tudo" shows the last 90 days)
+    function series(values) {
+      const days = Math.min(periodDays(), 90);
+      const out = [];
+      for (let i = days - 1; i >= 0; i--) {
+        const k = dayKey(Date.now() - i * DAY);
+        out.push([k, values[k] || 0]);
+      }
+      return out;
+    }
+    function bars(id, points, fmt) {
+      const max = Math.max(...points.map((p) => p[1]), 0);
+      $(id).innerHTML = points.map(([k, v]) =>
+        `<div class="bar" title="${k.split('-').reverse().slice(0, 2).join('/')}: ${fmt(v)}"><i style="height:${max ? Math.max(2, (v / max) * 100) : 0}%"></i></div>`
+      ).join('') + `<div class="axis"><span>${points[0][0].split('-').reverse().slice(0, 2).join('/')}</span><span>máx. ${fmt(max)}</span><span>hoje</span></div>`;
+    }
+
     async function load() {
       try {
-        const { stats, users: list } = await api('users');
-        users = list;
+        data = await api('users');
+        users = data.users;
+        loadedAt = Date.now();
         $('login').hidden = true;
         $('app').hidden = false;
         $('logout').hidden = false;
         $('setpw').hidden = false;
-        $('stats').innerHTML = [
-          ['Usuários', stats.total],
-          ['Com conta', stats.registered],
-          ['Pagantes', stats.paying],
-          ['Mensal', stats.monthly],
-          ['Anual', stats.annual],
-          ['Cortesia', stats.courtesy],
-          ['Ativos 7 dias', stats.activeLast7],
-          ['Receita/mês (est.)', '$' + (stats.monthly * 5.99 + stats.annual * 2.5).toFixed(0)],
-        ].map(([l, v]) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`).join('');
         render();
       } catch (e) {
         showLogin(e.message === 'forbidden' ? 'Este e-mail não tem acesso de administrador.' : '');
       }
     }
 
+    function renderStats() {
+      const now = Date.now();
+      const ev = events();
+      const active = (u) => Date.parse(String(u.last_seen_at)) > now - 7 * DAY;
+      const paying = users.filter((u) => u.premium && !u.courtesy && !u.in_trial && u.plan !== 'free');
+      const trial = users.filter((u) => u.premium && !u.courtesy && u.in_trial);
+      const monthly = paying.filter((u) => u.plan === 'monthly').length;
+      const annual = paying.filter((u) => u.plan === 'annual').length;
+      const mrr = monthly * PRICE.monthly + annual * (PRICE.annual / 12);
+      const revenue = ev.filter((e) => inPeriod(e.at) && isPaidEvent(e)).reduce((s, e) => s + Number(e.price_usd), 0);
+      const aiPeriod = data.aiDaily.filter((r) => Date.parse(r.day + 'T23:59:59') >= periodStart()).reduce((s, r) => s + Number(r.usd), 0);
+      const aiToday = Number((data.aiDaily.find((r) => r.day === dayKey(now)) || {}).usd || 0);
+      const activeCount = users.filter(active).length;
+      const newSubs = ev.filter((e) => inPeriod(e.at) && e.type === 'INITIAL_PURCHASE' && !isTrialEvent(e)).length;
+      const newTrials = ev.filter((e) => inPeriod(e.at) && e.type === 'INITIAL_PURCHASE' && isTrialEvent(e)).length;
+      const converted = ev.filter((e) => inPeriod(e.at) && e.type === 'RENEWAL' && e.period_type !== 'TRIAL').length;
+      const cancels = ev.filter((e) => inPeriod(e.at) && e.type === 'CANCELLATION').length;
+      const result = revenue * 0.85 - aiPeriod;
+
+      $('money').innerHTML = [
+        stat('Receita no período', usd(revenue), 'bruta, antes da taxa da loja'),
+        stat('Receita mensal recorrente', usd(mrr), 'estimada pelos assinantes ativos'),
+        stat('Custo de IA no período', usd(aiPeriod), `hoje: ${usd(aiToday, 3)}`),
+        stat('Custo de IA por usuário ativo', activeCount ? usd(aiPeriod / activeCount, 3) : '—', 'no período ÷ ativos 7 dias'),
+        `<div class="stat ${result >= 0 ? 'good' : 'bad'}"><b>${usd(result)}</b><span>Resultado no período</span><small>receita − 15% da loja − IA</small></div>`,
+      ].join('');
+      $('subs').innerHTML = [
+        stat('Pagantes agora', paying.length, `${monthly} mensal · ${annual} anual`),
+        stat('Em teste grátis', trial.length, 'ainda não pagaram'),
+        stat('Cortesia', users.filter((u) => u.courtesy).length),
+        stat('Novas assinaturas', newSubs, 'pagas, no período'),
+        stat('Testes iniciados', newTrials, `${converted} renovaram/viraram pagas`),
+        stat('Cancelamentos', cancels, 'no período'),
+      ].join('');
+      $('people').innerHTML = [
+        stat('Usuários', users.length),
+        stat('Novos no período', users.filter((u) => inPeriod(u.created_at)).length),
+        stat('Com conta', users.filter((u) => u.email).length, `${users.filter((u) => !u.email).length} visitantes`),
+        stat('Ativos 7 dias', activeCount),
+        stat('Conversão', users.length ? ((paying.length / users.length) * 100).toFixed(1) + '%' : '—', 'pagantes ÷ usuários'),
+      ].join('');
+
+      const aiByDay = Object.fromEntries(data.aiDaily.map((r) => [r.day, Number(r.usd)]));
+      bars('ch-ai', series(aiByDay), (v) => usd(v, 3));
+      $('ai-total').textContent = '· ' + usd(aiPeriod);
+      const newByDay = {};
+      users.forEach((u) => { const k = dayKey(u.created_at); newByDay[k] = (newByDay[k] || 0) + 1; });
+      bars('ch-users', series(newByDay), (v) => String(v));
+      const subsByDay = {};
+      ev.filter((e) => e.type === 'INITIAL_PURCHASE').forEach((e) => { const k = dayKey(e.at); subsByDay[k] = (subsByDay[k] || 0) + 1; });
+      bars('ch-subs', series(subsByDay), (v) => String(v));
+
+      // AI cost per feature in the period
+      const per = {};
+      data.aiByAction.filter((r) => Date.parse(r.day + 'T23:59:59') >= periodStart()).forEach((r) => {
+        per[r.action] ??= { calls: 0, usd: 0 };
+        per[r.action].calls += r.calls;
+        per[r.action].usd += Number(r.usd);
+      });
+      const totalFeat = Object.values(per).reduce((s, r) => s + r.usd, 0);
+      $('ai-rows').innerHTML = Object.entries(per).sort((a, b) => b[1].usd - a[1].usd).map(([k, r]) => `<tr>
+        <td><b>${esc(FEATURES[k] || k)}</b></td><td>${r.calls}</td><td>${usd(r.usd, 3)}</td>
+        <td>${usd(r.usd / r.calls, 4)}</td><td>${totalFeat ? Math.round((r.usd / totalFeat) * 100) : 0}%</td></tr>`).join('')
+        || '<tr><td colspan="5" class="muted">Ainda sem dados por função neste período.</td></tr>';
+      $('updated').textContent = 'Atualizado ' + new Date(loadedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function renderEvents() {
+      const t = $('ev-type').value, store = $('ev-store').value;
+      const list = events().filter((e) => {
+        if (!inPeriod(e.at)) return false;
+        if (store !== 'all' && e.store !== store) return false;
+        if (t === 'new') return e.type === 'INITIAL_PURCHASE' && !isTrialEvent(e);
+        if (t === 'trial') return e.type === 'INITIAL_PURCHASE' && isTrialEvent(e);
+        if (t === 'renewal') return e.type === 'RENEWAL';
+        if (t === 'cancel') return e.type === 'CANCELLATION';
+        if (t === 'expire') return e.type === 'EXPIRATION';
+        return true;
+      });
+      $('ev-rows').innerHTML = list.map((e) => {
+        let label = EVENTS[e.type] || e.type;
+        if (e.type === 'INITIAL_PURCHASE' && isTrialEvent(e)) label = 'Começou teste grátis';
+        const cls = isTrialEvent(e) ? 'trial' : e.type === 'INITIAL_PURCHASE' || e.type === 'RENEWAL' ? 'paid' : e.type === 'CANCELLATION' || e.type === 'EXPIRATION' ? 'bad' : '';
+        return `<tr>
+          <td>${fmtDateTime(e.at)}</td>
+          <td>${e.email ? esc(e.email) : `<span class="muted">${e.user_id ? 'Visitante' : 'Sem conta no app'}</span>`}</td>
+          <td><span class="pill ${cls}">${label}</span>${e.environment === 'SANDBOX' ? ' <span class="pill">teste</span>' : ''}</td>
+          <td>${e.product_id ? (planOf(e.product_id) === 'annual' ? 'Anual' : 'Mensal') : '—'}</td>
+          <td>${Number(e.price_usd) > 0 ? usd(e.price_usd) : '—'}</td>
+          <td>${e.store === 'APP_STORE' ? '🍎 App Store' : e.store === 'PLAY_STORE' ? '🤖 Google Play' : esc(e.store || '—')}</td>
+          <td>${fmtDate(e.expires_at)}</td>
+        </tr>`;
+      }).join('') || '<tr><td colspan="7" class="muted">Nenhum evento neste período.</td></tr>';
+    }
+
     function render() {
+      renderStats();
+      renderEvents();
       const q = $('q').value.trim().toLowerCase();
-      const f = $('filter').value;
+      const f = $('filter').value, lang = $('lang').value, sort = $('sort').value;
       const list = users.filter((u) => {
         if (q && ![u.email, u.name, u.referral_code].some((x) => String(x ?? '').toLowerCase().includes(q))) return false;
-        if (f === 'paying') return u.premium && !u.courtesy;
+        if (lang !== 'all' && !String(u.language || '').startsWith(lang)) return false;
+        if (f === 'paying') return u.premium && !u.courtesy && !u.in_trial;
+        if (f === 'trial') return u.premium && !u.courtesy && u.in_trial;
         if (f === 'courtesy') return u.courtesy;
         if (f === 'free') return !u.premium;
         if (f === 'registered') return !!u.email;
+        if (f === 'guest') return !u.email;
+        if (f === 'new') return inPeriod(u.created_at);
+        if (f === 'active') return Date.parse(String(u.last_seen_at)) > Date.now() - 7 * DAY;
         return true;
       });
+      const key = { created: 'created_at', seen: 'last_seen_at', subscribed: 'subscribed_at' }[sort];
+      list.sort((a, b) => (Date.parse(b[key]) || 0) - (Date.parse(a[key]) || 0));
+      $('count').textContent = `${list.length} de ${users.length}`;
       $('rows').innerHTML = list.map((u) => {
         const plan = u.courtesy ? '<span class="pill courtesy">Cortesia</span>'
+          : u.premium && u.in_trial ? `<span class="pill trial">Teste ${u.plan === 'annual' ? 'anual' : 'mensal'}</span>`
           : u.premium ? `<span class="pill paid">${u.plan === 'annual' ? 'Anual' : 'Mensal'}</span>`
           : '<span class="pill">Grátis</span>';
         const until = u.courtesy ? u.courtesy_until : u.premium_until;
@@ -190,6 +415,7 @@
         return `<tr>
           <td>${who}<br><span class="muted">${esc(u.name || '')} · código ${esc(u.referral_code)}</span>${u.courtesy_note ? `<br><span class="muted">📝 ${esc(u.courtesy_note)}</span>` : ''}</td>
           <td>${plan}</td>
+          <td>${fmtDate(u.subscribed_at)}</td>
           <td>${fmtDate(until)}</td>
           <td>${u.invited.joined} entraram · ${u.invited.subscribed} assinaram</td>
           <td>${esc(u.language || '—')} ${esc(u.currency || '')}</td>
@@ -200,7 +426,7 @@
             ${u.courtesy ? `<button class="btn small ghost" data-remove="${u.id}">Remover</button>` : ''}
           </td>
         </tr>`;
-      }).join('') || '<tr><td colspan="8" class="muted">Nenhum usuário encontrado.</td></tr>';
+      }).join('') || '<tr><td colspan="9" class="muted">Nenhum usuário encontrado.</td></tr>';
     }
 
     $('rows').addEventListener('click', async (e) => {
@@ -224,7 +450,7 @@
       load();
     };
     $('q').oninput = render;
-    $('filter').onchange = render;
+    ['filter', 'lang', 'sort', 'period', 'sandbox', 'ev-type', 'ev-store'].forEach((id) => ($(id).onchange = render));
     $('reload').onclick = load;
     $('logout').onclick = async () => { await db.auth.signOut(); showLogin(); };
 

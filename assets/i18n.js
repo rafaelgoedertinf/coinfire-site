@@ -17,6 +17,9 @@
       const v = d[el.dataset.i18nPh];
       if (v !== undefined) el.placeholder = v;
     });
+    document.querySelectorAll('[data-src-en]').forEach((img) => {
+      img.src = window.LANG === 'pt' ? img.dataset.srcPt : img.dataset.srcEn;
+    });
     if (d._title) document.title = d._title;
     document.querySelectorAll('.lang button').forEach((b) => b.classList.toggle('on', b.dataset.lang === window.LANG));
   };

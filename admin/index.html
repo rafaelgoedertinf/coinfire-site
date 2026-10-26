@@ -50,6 +50,23 @@
     .bulk { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; background: var(--card-hi); border: 1px solid var(--line); border-radius: 14px; padding: 10px 14px; margin-bottom: 12px; position: sticky; top: 56px; z-index: 4; }
     .btn.danger { background: #b91c1c; }
     tr.sel td { background: #1d1310; }
+    .tabs { display: flex; gap: 8px; margin: 6px 0 4px; }
+    .tabs button { background: var(--card); color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 9px 16px; font: 700 15px/1 inherit; cursor: pointer; }
+    .tabs button.on { color: var(--text); border-color: var(--fire); background: var(--card-hi); }
+    .conn { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin: 18px 0 6px; }
+    .conn .card { padding: 16px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    .conn img { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; background: var(--card-hi); }
+    .conn .who { flex: 1 1 140px; min-width: 0; } .conn .who b { display: block; font-size: 16px; }
+    .conn .who small { color: var(--muted); font-size: 12px; display: block; overflow-wrap: anywhere; }
+    .banner { border-radius: 14px; padding: 12px 14px; margin: 12px 0; font-size: 14px; }
+    .banner.ok { background: #0f2a1e; color: #6ee7b7; } .banner.err { background: #3f1d1d; color: #fca5a5; }
+    .post { display: flex; gap: 10px; align-items: center; max-width: 380px; color: var(--text); text-decoration: none; }
+    .post:hover span { text-decoration: underline; }
+    .post img { width: 42px; height: 56px; object-fit: cover; border-radius: 8px; background: var(--card-hi); flex: none; }
+    .post span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 13px; }
+    .steps { padding-left: 20px; font-size: 14px; line-height: 1.5; } .steps li { margin-bottom: 6px; }
+    .copy { display: flex; gap: 6px; margin: 4px 0; } .copy input { margin: 0 !important; font-size: 12px !important; }
+    .stat .arrow { color: var(--muted); font-size: 12px; }
   </style>
 </head>
 <body>
@@ -85,6 +102,10 @@
     </div>
 
     <div id="app" hidden>
+      <div class="tabs" id="tabs">
+        <button data-tab="app" class="on">📊 App</button>
+        <button data-tab="social">📱 Redes sociais</button>
+      </div>
       <div class="toolbar sticky">
         <label class="muted">Período</label>
         <select id="period">
@@ -94,13 +115,14 @@
           <option value="90">Últimos 90 dias</option>
           <option value="3650">Tudo</option>
         </select>
-        <label class="check"><input type="checkbox" id="sandbox" /> Incluir compras de teste (sandbox)</label>
-        <label class="check"><input type="checkbox" id="showtest" /> Mostrar contas de teste</label>
+        <label class="check only-app"><input type="checkbox" id="sandbox" /> Incluir compras de teste (sandbox)</label>
+        <label class="check only-app"><input type="checkbox" id="showtest" /> Mostrar contas de teste</label>
         <span style="flex:1"></span>
         <span class="muted" id="updated" style="font-size:13px"></span>
         <button class="btn small ghost" id="reload">Atualizar</button>
       </div>
 
+      <div id="tab-app">
       <h3 class="sec">💰 Dinheiro</h3>
       <div class="stats" id="money"></div>
       <h3 class="sec">⭐ Assinaturas</h3>
@@ -185,8 +207,58 @@
         </table>
       </div>
       <p class="muted note">Usuários sem e-mail ainda não criaram conta (usam o app como visitante).</p>
+      </div>
+
+      <div id="tab-social" hidden>
+        <div id="s-banner"></div>
+        <div class="conn" id="conn"></div>
+        <div id="s-body">
+          <h3 class="sec">🚀 Funil: das redes até o app</h3>
+          <div class="stats" id="s-funnel"></div>
+          <h3 class="sec">📸 Instagram</h3>
+          <div class="stats" id="s-ig"></div>
+          <h3 class="sec">🎵 TikTok</h3>
+          <div class="stats" id="s-tt"></div>
+          <div class="charts">
+            <div class="chart card"><h4>Seguidores no Instagram</h4><div class="bars" id="ch-ig-f"></div></div>
+            <div class="chart card"><h4>Seguidores no TikTok</h4><div class="bars" id="ch-tt-f"></div></div>
+            <div class="chart card"><h4>Visualizações por dia no Instagram</h4><div class="bars" id="ch-ig-v"></div></div>
+            <div class="chart card"><h4>Cliques no link da bio por dia (Instagram)</h4><div class="bars" id="ch-ig-l"></div></div>
+          </div>
+          <h3 class="sec">🎬 Posts</h3>
+          <div class="toolbar" style="margin-top:10px">
+            <select id="p-plat"><option value="">Todas as redes</option><option value="instagram">Instagram</option><option value="tiktok">TikTok</option></select>
+            <select id="p-sort">
+              <option value="posted_at">Mais recentes</option>
+              <option value="views">Mais visualizações</option>
+              <option value="eng">Maior engajamento</option>
+              <option value="shares">Mais compartilhamentos</option>
+            </select>
+            <span class="muted" id="p-count" style="font-size:13px"></span>
+          </div>
+          <div class="table-wrap"><table class="small">
+            <thead><tr><th>Post</th><th>Rede</th><th>Visualizações</th><th>Curtidas</th><th>Comentários</th><th>Compart.</th><th>Salvos</th><th>Engajamento</th></tr></thead>
+            <tbody id="p-rows"></tbody>
+          </table></div>
+          <p class="muted note">Dados das APIs oficiais do Instagram e do TikTok. Atualiza sozinho a cada 6 horas, ou na hora pelo botão "Sincronizar". O histórico de seguidores começa no dia em que a conta foi conectada. Engajamento = (curtidas + comentários + compartilhamentos + salvos) ÷ visualizações.</p>
+        </div>
+      </div>
     </div>
   </div>
+
+  <dialog id="cfg-dlg">
+    <h3 style="margin:0 0 6px" id="cfg-title"></h3>
+    <ol class="steps" id="cfg-steps"></ol>
+    <label class="muted" style="font-size:13px" id="cfg-id-label"></label>
+    <input id="cfg-id" autocomplete="off" />
+    <label class="muted" style="font-size:13px" id="cfg-secret-label"></label>
+    <input id="cfg-secret" type="password" autocomplete="off" />
+    <div class="msg" id="cfg-msg"></div>
+    <div class="row-actions">
+      <button class="btn small ghost" id="cfg-cancel">Cancelar</button>
+      <button class="btn small" id="cfg-save">Salvar e conectar</button>
+    </div>
+  </dialog>
 
   <dialog id="courtesy-dlg">
     <h3 style="margin:0 0 6px">🎁 Dar cortesia</h3>
@@ -298,6 +370,8 @@
         $('logout').hidden = false;
         $('setpw').hidden = false;
         render();
+        if (location.hash === '#social') showTab('social');
+        else if (socialLoaded) loadSocial();
       } catch (e) {
         showLogin(e.message === 'forbidden' ? 'Este e-mail não tem acesso de administrador.' : '');
       }
@@ -403,6 +477,7 @@
       users = data.users.filter((u) => showTest || !u.is_test);
       renderStats();
       renderEvents();
+      if (socialLoaded) renderSocial();
       const q = $('q').value.trim().toLowerCase();
       const f = $('filter').value, lang = $('lang').value, sort = $('sort').value;
       const list = users.filter((u) => {
@@ -539,6 +614,235 @@
       say('Senha salva! Agora você entra com e-mail e senha em qualquer computador.', true);
       setTimeout(load, 1500);
     };
+
+
+    // ---------- Redes sociais ----------
+    let social = { accounts: [], daily: [], posts: [], redirect: {} };
+    let socialLoaded = false;
+    const NAMES = { instagram: 'Instagram', tiktok: 'TikTok' };
+    const ICONS = { instagram: '📸', tiktok: '🎵' };
+    const num = (n) => (n == null ? '—' : Number(n).toLocaleString('pt-BR'));
+    const pct = (a, b) => (b ? (100 * a / b).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + '%' : '—');
+    const signed = (n) => (n == null ? '' : (n > 0 ? '+' : '') + num(n));
+
+    async function socialApi(action, extra = {}) {
+      const { data: s } = await db.auth.getSession();
+      const res = await fetch(`${COINFIRE.supabaseUrl}/functions/v1/social`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: COINFIRE.supabaseKey, Authorization: `Bearer ${s.session?.access_token}` },
+        body: JSON.stringify({ action, ...extra }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || res.status);
+      return json;
+    }
+
+    function showTab(tab) {
+      document.querySelectorAll('#tabs button').forEach((b) => b.classList.toggle('on', b.dataset.tab === tab));
+      $('tab-app').hidden = tab !== 'app';
+      $('tab-social').hidden = tab !== 'social';
+      document.querySelectorAll('.only-app').forEach((el) => (el.hidden = tab !== 'app'));
+      if (location.hash !== '#' + tab) history.replaceState(null, '', tab === 'social' ? '#social' : location.pathname);
+      if (tab === 'social' && !socialLoaded) loadSocial();
+    }
+    document.querySelectorAll('#tabs button').forEach((b) => (b.onclick = () => showTab(b.dataset.tab)));
+
+    async function loadSocial() {
+      try {
+        social = await socialApi('stats');
+        socialLoaded = true;
+        renderSocial();
+      } catch (e) {
+        $('s-banner').innerHTML = `<div class="banner err">Não foi possível carregar as redes sociais: ${esc(e.message)}</div>`;
+      }
+    }
+
+    const acc = (p) => social.accounts.find((a) => a.platform === p) || { platform: p };
+    const rowsOf = (p) => social.daily.filter((d) => d.platform === p);
+    const startKey = () => dayKey(periodStart());
+
+    // Last known value on/before each day (follower snapshots only exist on days the sync ran)
+    function carried(p, field) {
+      const rows = rowsOf(p).filter((r) => r[field] != null);
+      const out = {};
+      let last = 0, i = 0;
+      for (const [k] of series({})) {
+        while (i < rows.length && rows[i].day <= k) last = rows[i++][field];
+        out[k] = last;
+      }
+      return out;
+    }
+    const daily = (p, field) => Object.fromEntries(rowsOf(p).map((r) => [r.day, Number(r[field] || 0)]));
+    const sumPeriod = (p, field) => {
+      const rows = rowsOf(p).filter((r) => r.day >= startKey() && r[field] != null);
+      return rows.length ? rows.reduce((s, r) => s + Number(r[field]), 0) : null;
+    };
+    // Change of a cumulative counter (followers, total views…) inside the period
+    function growth(p, field) {
+      const rows = rowsOf(p).filter((r) => r[field] != null);
+      if (!rows.length) return { now: null, delta: null };
+      const now = Number(rows[rows.length - 1][field]);
+      const before = [...rows].reverse().find((r) => r.day < startKey()) || rows.find((r) => r.day >= startKey());
+      return { now, delta: before && before !== rows[rows.length - 1] ? now - Number(before[field]) : null };
+    }
+    const engagement = (x) => Number(x.likes || 0) + Number(x.comments || 0) + Number(x.shares || 0) + Number(x.saves || 0);
+    const postsIn = (p) => social.posts.filter((x) => x.platform === p && inPeriod(x.posted_at));
+
+    function renderConn() {
+      $('conn').innerHTML = ['instagram', 'tiktok'].map((p) => {
+        const a = acc(p);
+        const status = a.connected
+          ? `@${esc(a.username || '')}<small>Sincronizado ${a.synced_at ? fmtDateTime(a.synced_at) : '—'}</small>${a.last_error ? `<small style="color:#fca5a5">Erro: ${esc(a.last_error)}</small>` : ''}`
+          : `<span class="muted">Não conectado</span><small>${a.configured ? 'Credenciais salvas. Falta autorizar.' : 'Precisa configurar o app de desenvolvedor.'}</small>`;
+        const btns = a.connected
+          ? `<button class="btn small" data-sync>Sincronizar</button><button class="btn small ghost" data-cfg="${p}">⚙️</button>`
+          : a.configured
+            ? `<button class="btn small" data-connect="${p}">Conectar</button><button class="btn small ghost" data-cfg="${p}">⚙️</button>`
+            : `<button class="btn small" data-cfg="${p}">Configurar</button>`;
+        return `<div class="card">${a.avatar_url ? `<img src="${esc(a.avatar_url)}" alt="" />` : `<img alt="" />`}
+          <div class="who"><b>${ICONS[p]} ${NAMES[p]}</b>${status}</div>${btns}</div>`;
+      }).join('');
+      document.querySelectorAll('[data-cfg]').forEach((b) => (b.onclick = () => openCfg(b.dataset.cfg)));
+      document.querySelectorAll('[data-connect]').forEach((b) => (b.onclick = () => connect(b.dataset.connect)));
+      document.querySelectorAll('[data-sync]').forEach((b) => (b.onclick = async () => {
+        b.disabled = true; b.textContent = 'Sincronizando…';
+        try { await socialApi('sync'); } catch (e) { alert(e.message); }
+        await loadSocial();
+      }));
+    }
+
+    function renderSocial() {
+      renderConn();
+      const any = social.accounts.some((a) => a.connected);
+      $('s-body').hidden = !any;
+      if (!any) return;
+
+      const igF = growth('instagram', 'followers'), ttF = growth('tiktok', 'followers');
+      const ttViews = growth('tiktok', 'views_total');
+      const igViews = sumPeriod('instagram', 'views');
+      const igReach = sumPeriod('instagram', 'reach');
+      const igProfile = sumPeriod('instagram', 'profile_views');
+      const igLinks = sumPeriod('instagram', 'link_taps');
+      const igInter = sumPeriod('instagram', 'interactions');
+      const ttPeriodViews = ttViews.delta ?? (postsIn('tiktok').reduce((s, x) => s + Number(x.views || 0), 0) || null);
+      const views = (igViews || 0) + (ttPeriodViews || 0);
+      const signups = users.filter((u) => !u.is_test && u.email && inPeriod(u.created_at)).length;
+      const installs = users.filter((u) => !u.is_test && inPeriod(u.created_at)).length;
+      const hint = (n) => (n == null ? 'sem dados no período' : `${signed(n)} no período`);
+
+      $('s-funnel').innerHTML = [
+        stat('👀 Visualizações (IG + TikTok)', num(views)),
+        stat('👤 Visitas ao perfil (IG)', num(igProfile), `<span class="arrow">${pct(igProfile || 0, igViews || 0)} de quem viu no IG</span>`),
+        stat('🔗 Cliques no link da bio (IG)', num(igLinks), `<span class="arrow">${pct(igLinks || 0, igProfile || 0)} de quem visitou o perfil</span>`),
+        stat('📲 Novos usuários no app', num(installs), `${num(signups)} criaram conta · todas as origens`),
+      ].join('');
+
+      const ig = postsIn('instagram'), tt = postsIn('tiktok');
+      const avg = (list) => (list.length ? Math.round(list.reduce((s, x) => s + Number(x.views || 0), 0) / list.length) : null);
+      const er = (list) => pct(list.reduce((s, x) => s + engagement(x), 0), list.reduce((s, x) => s + Number(x.views || 0), 0));
+      const igA = acc('instagram'), ttA = acc('tiktok');
+
+      $('s-ig').innerHTML = igA.connected ? [
+        stat('Seguidores', num(igF.now), hint(igF.delta)),
+        stat('Visualizações', num(igViews), 'soma dos dias no período'),
+        stat('Alcance', num(igReach), 'contas alcançadas (soma diária)'),
+        stat('Interações', num(igInter), 'curtidas, comentários, salvos, compartilh.'),
+        stat('Posts no período', num(ig.length), `média de ${num(avg(ig))} visualizações`),
+        stat('Engajamento', er(ig), 'dos posts do período'),
+      ].join('') : '<p class="muted">Conecte o Instagram para ver os números.</p>';
+
+      $('s-tt').innerHTML = ttA.connected ? [
+        stat('Seguidores', num(ttF.now), hint(ttF.delta)),
+        stat('Visualizações', num(ttPeriodViews), ttViews.delta != null ? 'crescimento no período' : 'dos vídeos postados no período'),
+        stat('Curtidas totais', num(growth('tiktok', 'likes_total').now), hint(growth('tiktok', 'likes_total').delta)),
+        stat('Vídeos no período', num(tt.length), `média de ${num(avg(tt))} visualizações`),
+        stat('Engajamento', er(tt), 'dos vídeos do período'),
+      ].join('') : '<p class="muted">Conecte o TikTok para ver os números.</p>';
+
+      bars('ch-ig-f', series(carried('instagram', 'followers')), num);
+      bars('ch-tt-f', series(carried('tiktok', 'followers')), num);
+      bars('ch-ig-v', series(daily('instagram', 'views')), num);
+      bars('ch-ig-l', series(daily('instagram', 'link_taps')), num);
+      renderPosts();
+    }
+
+    function renderPosts() {
+      const plat = $('p-plat').value, sort = $('p-sort').value;
+      const key = { posted_at: (x) => Date.parse(x.posted_at), views: (x) => Number(x.views || 0), shares: (x) => Number(x.shares || 0), eng: (x) => (x.views ? engagement(x) / x.views : 0) }[sort];
+      const list = social.posts.filter((x) => (!plat || x.platform === plat) && inPeriod(x.posted_at)).sort((a, b) => key(b) - key(a));
+      $('p-count').textContent = `${list.length} posts no período`;
+      $('p-rows').innerHTML = list.map((x) => `<tr>
+        <td><a class="post" href="${esc(x.url)}" target="_blank" rel="noopener">${x.thumb ? `<img src="${esc(x.thumb)}" alt="" loading="lazy" />` : '<img alt="" />'}<div><span>${esc(x.caption || '(sem legenda)')}</span><small class="muted">${fmtDate(x.posted_at)}</small></div></a></td>
+        <td>${ICONS[x.platform]} ${NAMES[x.platform]}</td>
+        <td><b>${num(x.views)}</b></td><td>${num(x.likes)}</td><td>${num(x.comments)}</td><td>${num(x.shares)}</td><td>${num(x.saves)}</td>
+        <td>${x.views ? pct(engagement(x), x.views) : '—'}</td></tr>`).join('') || '<tr><td colspan="8" class="muted">Nenhum post no período.</td></tr>';
+    }
+    $('p-plat').onchange = renderPosts;
+    $('p-sort').onchange = renderPosts;
+
+    const SETUP = {
+      instagram: {
+        id: 'ID do app do Instagram', secret: 'Chave secreta do app do Instagram',
+        steps: (r) => [
+          'A conta do Instagram precisa ser <b>profissional</b> (Empresa ou Criador). No app: Configurações → Tipo de conta e ferramentas → Mudar para conta profissional.',
+          'Em <a href="https://developers.facebook.com/apps" target="_blank" rel="noopener">developers.facebook.com/apps</a>, crie um app com o caso de uso <b>"Gerenciar mensagens e conteúdo no Instagram"</b>.',
+          'Em "Configuração da API com login do Instagram" → "Configurar login comercial do Instagram", cole esta URL de redirecionamento:' + copyBox(r),
+          'Em "Funções do app" → "Testadores do Instagram", adicione a conta e aceite o convite no Instagram (Configurações → Apps e sites).',
+          'Copie o <b>ID</b> e a <b>chave secreta do app do Instagram</b> e cole abaixo.',
+        ],
+      },
+      tiktok: {
+        id: 'Client key', secret: 'Client secret',
+        steps: (r) => [
+          'Em <a href="https://developers.tiktok.com/apps" target="_blank" rel="noopener">developers.tiktok.com/apps</a>, crie um app (pode usar o modo <b>Sandbox</b>).',
+          'Adicione o produto <b>Login Kit</b> com os escopos <b>user.info.basic, user.info.profile, user.info.stats e video.list</b>.',
+          'Em Login Kit → Redirect URI (Web), cole:' + copyBox(r),
+          'No Sandbox, adicione a conta do TikTok do CoinFire em "Target users".',
+          'Copie a <b>Client key</b> e o <b>Client secret</b> e cole abaixo.',
+        ],
+      },
+    };
+    function copyBox(text) {
+      return `<div class="copy"><input readonly value="${esc(text)}" onclick="this.select()" /><button class="btn small ghost" type="button" onclick="navigator.clipboard.writeText('${esc(text)}');this.textContent='Copiado!'">Copiar</button></div>`;
+    }
+    let cfgPlatform = null;
+    function openCfg(p) {
+      cfgPlatform = p;
+      const s = SETUP[p];
+      $('cfg-title').textContent = `${ICONS[p]} Conectar ${NAMES[p]}`;
+      $('cfg-steps').innerHTML = s.steps(social.redirect[p] || '').map((t) => `<li>${t}</li>`).join('');
+      $('cfg-id-label').textContent = s.id;
+      $('cfg-secret-label').textContent = s.secret;
+      $('cfg-id').value = acc(p).client_id || '';
+      $('cfg-secret').value = '';
+      $('cfg-secret').placeholder = acc(p).configured ? 'Salva. Deixe em branco para manter.' : '';
+      $('cfg-msg').textContent = '';
+      $('cfg-dlg').showModal();
+    }
+    $('cfg-cancel').onclick = () => $('cfg-dlg').close();
+    $('cfg-save').onclick = async () => {
+      const clientId = $('cfg-id').value.trim(), clientSecret = $('cfg-secret').value.trim();
+      try {
+        if (clientSecret) await socialApi('configure', { platform: cfgPlatform, clientId, clientSecret });
+        else if (!acc(cfgPlatform).configured) throw new Error('Preencha os dois campos.');
+        await connect(cfgPlatform);
+      } catch (e) {
+        $('cfg-msg').className = 'msg err';
+        $('cfg-msg').textContent = e.message;
+      }
+    };
+    async function connect(p) {
+      const { url } = await socialApi('connect', { platform: p });
+      location.href = url;
+    }
+
+    // Back from Instagram/TikTok authorization
+    (() => {
+      const q = new URLSearchParams(location.search);
+      if (q.has('connected')) $('s-banner').innerHTML = `<div class="banner ok">✅ ${NAMES[q.get('connected')] || ''} conectado! Os números já foram puxados.</div>`;
+      if (q.has('social_error')) $('s-banner').innerHTML = `<div class="banner err">Não foi possível conectar o ${NAMES[q.get('platform')] || ''}: ${esc(q.get('social_error'))}</div>`;
+      if (q.has('connected') || q.has('social_error')) history.replaceState(null, '', location.pathname + '#social');
+    })();
 
     db.auth.getSession().then(({ data }) => (data.session ? load() : showLogin()));
   </script>

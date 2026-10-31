@@ -45,6 +45,7 @@
     .bar:hover i { background: #ffb13d; }
     .axis { position: absolute; left: 0; right: 0; bottom: 0; display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); }
     table.small { min-width: 640px; }
+    .pill.using { background: #065f46; color: #a7f3d0; }
     .pill.trial { background: #7c3aed; } .pill.bad { background: #3f1d1d; color: #fca5a5; }
     .note { font-size: 13px; margin-top: 8px; }
     .bulk { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; background: var(--card-hi); border: 1px solid var(--line); border-radius: 14px; padding: 10px 14px; margin-bottom: 12px; position: sticky; top: 56px; z-index: 4; }
@@ -177,7 +178,9 @@
           <option value="registered">Com conta</option>
           <option value="guest">Visitantes (sem conta)</option>
           <option value="new">Entraram no período</option>
+          <option value="using">🟢 Usando (acessou nos últimos 3 dias)</option>
           <option value="active">Ativos nos últimos 7 dias</option>
+          <option value="stopped">⚪ Parados (sem acesso há mais de 3 dias)</option>
         </select>
         <select id="lang">
           <option value="all">Todos os idiomas</option>
@@ -186,7 +189,8 @@
         </select>
         <select id="sort">
           <option value="created">Mais recentes</option>
-          <option value="seen">Último uso</option>
+          <option value="seen">Último acesso</option>
+          <option value="ai">Mais uso de IA</option>
           <option value="subscribed">Assinou mais recente</option>
         </select>
         <span class="muted" id="count" style="font-size:13px"></span>
@@ -201,12 +205,12 @@
       <div class="table-wrap">
         <table>
           <thead>
-            <tr><th><input type="checkbox" id="all" title="Selecionar todos da lista" /></th><th>Usuário</th><th>Plano</th><th>Assinou em</th><th>Válido até</th><th>Indicações</th><th>Idioma</th><th>Desde</th><th>Último uso</th><th></th></tr>
+            <tr><th><input type="checkbox" id="all" title="Selecionar todos da lista" /></th><th>Usuário</th><th>Plano</th><th>Assinou em</th><th>Válido até</th><th>Indicações</th><th>Idioma</th><th>Desde</th><th>Último acesso</th><th>Uso de IA</th><th></th></tr>
           </thead>
           <tbody id="rows"></tbody>
         </table>
       </div>
-      <p class="muted note">Usuários sem e-mail ainda não criaram conta (usam o app como visitante).</p>
+      <p class="muted note"><span class="pill using">🟢 Usando</span> = abriu o app pelo menos uma vez nos últimos 3 dias · <span class="pill">⚪ Parado</span> = sem acesso há mais de 3 dias. "Uso de IA" = quantas vezes a pessoa usou a IA (registrar gastos, nota do mês, análise) e o custo estimado, contado a partir de 31/10.<br>Usuários sem e-mail ainda não criaram conta (usam o app como visitante).</p>
       </div>
 
       <div id="tab-social" hidden>
@@ -341,6 +345,17 @@
     const events = () => { const t = testIds(); return data.events.filter((e) => ($('sandbox').checked || e.environment !== 'SANDBOX') && !t.has(e.user_id)); };
     const selected = new Set();
     let visible = [];
+    // "Using" = opened the app at least once in the last 3 days
+    const isUsing = (u) => Date.parse(String(u.last_seen_at)) > Date.now() - 3 * DAY;
+    function ago(d) {
+      const t = Date.parse(String(d));
+      if (!t) return '—';
+      const m = Math.round((Date.now() - t) / 60000);
+      if (m < 60) return `há ${Math.max(1, m)} min`;
+      if (m < 1440) return `há ${Math.round(m / 60)} h`;
+      const days = Math.round(m / 1440);
+      return days === 1 ? 'ontem' : `há ${days} dias`;
+    }
     const stat = (label, value, hint) => `<div class="stat"><b>${value}</b><span>${label}</span>${hint ? `<small>${hint}</small>` : ''}</div>`;
 
     // Daily series for the chosen period (max 90 bars; "Tudo" shows the last 90 days)
@@ -415,7 +430,9 @@
         stat('Usuários', users.length),
         stat('Novos no período', users.filter((u) => inPeriod(u.created_at)).length),
         stat('Com conta', users.filter((u) => u.email).length, `${users.filter((u) => !u.email).length} visitantes`),
+        stat('🟢 Usando agora', users.filter(isUsing).length, 'abriram nos últimos 3 dias'),
         stat('Ativos 7 dias', activeCount),
+        stat('Usaram a IA', users.filter((u) => u.ai_calls > 0).length, 'desde 31/10'),
         stat('Conversão', users.length ? ((paying.length / users.length) * 100).toFixed(1) + '%' : '—', 'pagantes ÷ usuários'),
       ].join('');
 
@@ -491,10 +508,13 @@
         if (f === 'guest') return !u.email;
         if (f === 'new') return inPeriod(u.created_at);
         if (f === 'active') return Date.parse(String(u.last_seen_at)) > Date.now() - 7 * DAY;
+        if (f === 'using') return isUsing(u);
+        if (f === 'stopped') return !isUsing(u);
         return true;
       });
       const key = { created: 'created_at', seen: 'last_seen_at', subscribed: 'subscribed_at' }[sort];
-      list.sort((a, b) => (Date.parse(b[key]) || 0) - (Date.parse(a[key]) || 0));
+      if (sort === 'ai') list.sort((a, b) => (b.ai_calls || 0) - (a.ai_calls || 0));
+      else list.sort((a, b) => (Date.parse(b[key]) || 0) - (Date.parse(a[key]) || 0));
       $('count').textContent = `${list.length} de ${users.length}`;
       $('rows').innerHTML = list.map((u) => {
         const plan = u.courtesy ? '<span class="pill courtesy">Cortesia</span>'
@@ -512,13 +532,14 @@
           <td>${u.invited.joined} entraram · ${u.invited.subscribed} assinaram</td>
           <td>${esc(u.language || '—')} ${esc(u.currency || '')}</td>
           <td>${fmtDate(u.created_at)}</td>
-          <td>${fmtDate(u.last_seen_at)}</td>
+          <td>${isUsing(u) ? '<span class="pill using">🟢 Usando</span>' : '<span class="pill">⚪ Parado</span>'}<br><span class="muted">${ago(u.last_seen_at)}</span></td>
+          <td>${u.ai_calls ? `<b>${u.ai_calls}</b> uso${u.ai_calls > 1 ? 's' : ''}<br><span class="muted">${usd(u.ai_usd, 3)}${u.last_ai_at ? ' · ' + ago(u.last_ai_at) : ''}</span>` : '<span class="muted">—</span>'}</td>
           <td style="white-space:nowrap">
             <button class="btn small" data-give="${u.id}">🎁 Cortesia</button>
             ${u.courtesy ? `<button class="btn small ghost" data-remove="${u.id}">Remover</button>` : ''}
           </td>
         </tr>`;
-      }).join('') || '<tr><td colspan="10" class="muted">Nenhum usuário encontrado.</td></tr>';
+      }).join('') || '<tr><td colspan="11" class="muted">Nenhum usuário encontrado.</td></tr>';
       visible = list;
       $('all').checked = list.length > 0 && list.every((u) => selected.has(u.id));
       $('bulk').hidden = selected.size === 0;

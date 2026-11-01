@@ -223,6 +223,10 @@
       </div>
 
       <div id="tab-social" hidden>
+        <div class="tabs" id="mkt" style="margin-top:14px">
+          <button data-mkt="us" class="on">🇺🇸 Estados Unidos</button>
+          <button data-mkt="br">🇧🇷 Brasil</button>
+        </div>
         <div id="s-banner"></div>
         <div class="conn" id="conn"></div>
         <div id="s-body">
@@ -647,8 +651,20 @@
     // ---------- Redes sociais ----------
     let social = { accounts: [], daily: [], posts: [], redirect: {} };
     let socialLoaded = false;
-    const NAMES = { instagram: 'Instagram', tiktok: 'TikTok' };
-    const ICONS = { instagram: '📸', tiktok: '🎵' };
+    const NAMES = { instagram: 'Instagram', tiktok: 'TikTok', instagram_br: 'Instagram Brasil', tiktok_br: 'TikTok Brasil' };
+    const ICONS = { instagram: '📸', tiktok: '🎵', instagram_br: '📸', tiktok_br: '🎵' };
+    // One Instagram + TikTok per market; Brazilian accounts are stored as "instagram_br"/"tiktok_br"
+    let market = (() => { try { return localStorage.getItem('cf-mkt') || 'us'; } catch { return 'us'; } })();
+    const k = (p) => (market === 'br' ? p + '_br' : p);
+    document.querySelectorAll('#mkt button').forEach((b) => {
+      b.classList.toggle('on', b.dataset.mkt === market);
+      b.onclick = () => {
+        market = b.dataset.mkt;
+        try { localStorage.setItem('cf-mkt', market); } catch {}
+        document.querySelectorAll('#mkt button').forEach((x) => x.classList.toggle('on', x === b));
+        if (socialLoaded) renderSocial();
+      };
+    });
     const num = (n) => (n == null ? '—' : Number(n).toLocaleString('pt-BR'));
     const pct = (a, b) => (b ? (100 * a / b).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + '%' : '—');
     const signed = (n) => (n == null ? '' : (n > 0 ? '+' : '') + num(n));
@@ -717,7 +733,7 @@
     const postsIn = (p) => social.posts.filter((x) => x.platform === p && inPeriod(x.posted_at));
 
     function renderConn() {
-      $('conn').innerHTML = ['instagram', 'tiktok'].map((p) => {
+      $('conn').innerHTML = [k('instagram'), k('tiktok')].map((p) => {
         const a = acc(p);
         const status = a.connected
           ? `@${esc(a.username || '')}<small>Sincronizado ${a.synced_at ? fmtDateTime(a.synced_at) : '—'}</small>${a.last_error ? `<small style="color:#fca5a5">Erro: ${esc(a.last_error)}</small>` : ''}`
@@ -741,34 +757,37 @@
 
     function renderSocial() {
       renderConn();
-      const any = social.accounts.some((a) => a.connected);
+      const IG = k('instagram'), TT = k('tiktok');
+      const any = acc(IG).connected || acc(TT).connected;
       $('s-body').hidden = !any;
       if (!any) return;
 
-      const igF = growth('instagram', 'followers'), ttF = growth('tiktok', 'followers');
-      const ttViews = growth('tiktok', 'views_total');
-      const igViews = sumPeriod('instagram', 'views');
-      const igReach = sumPeriod('instagram', 'reach');
-      const igProfile = sumPeriod('instagram', 'profile_views');
-      const igLinks = sumPeriod('instagram', 'link_taps');
-      const igInter = sumPeriod('instagram', 'interactions');
-      const ttPeriodViews = ttViews.delta ?? (postsIn('tiktok').reduce((s, x) => s + Number(x.views || 0), 0) || null);
+      const igF = growth(IG, 'followers'), ttF = growth(TT, 'followers');
+      const ttViews = growth(TT, 'views_total');
+      const igViews = sumPeriod(IG, 'views');
+      const igReach = sumPeriod(IG, 'reach');
+      const igProfile = sumPeriod(IG, 'profile_views');
+      const igLinks = sumPeriod(IG, 'link_taps');
+      const igInter = sumPeriod(IG, 'interactions');
+      const ttPeriodViews = ttViews.delta ?? (postsIn(TT).reduce((s, x) => s + Number(x.views || 0), 0) || null);
       const views = (igViews || 0) + (ttPeriodViews || 0);
-      const signups = users.filter((u) => !u.is_test && u.email && inPeriod(u.created_at)).length;
-      const installs = users.filter((u) => !u.is_test && inPeriod(u.created_at)).length;
+      // Users of this market: the Brazilian app runs in Portuguese
+      const inMkt = (u) => (market === 'br' ? u.language === 'pt' : u.language !== 'pt');
+      const signups = users.filter((u) => !u.is_test && inMkt(u) && u.email && inPeriod(u.created_at)).length;
+      const installs = users.filter((u) => !u.is_test && inMkt(u) && inPeriod(u.created_at)).length;
       const hint = (n) => (n == null ? 'sem dados no período' : `${signed(n)} no período`);
 
       $('s-funnel').innerHTML = [
         stat('👀 Visualizações (IG + TikTok)', num(views)),
         stat('👤 Visitas ao perfil (IG)', num(igProfile), `<span class="arrow">${pct(igProfile || 0, igViews || 0)} de quem viu no IG</span>`),
         stat('🔗 Cliques no link da bio (IG)', num(igLinks), `<span class="arrow">${pct(igLinks || 0, igProfile || 0)} de quem visitou o perfil</span>`),
-        stat('📲 Novos usuários no app', num(installs), `${num(signups)} criaram conta · todas as origens`),
+        stat('📲 Novos usuários no app', num(installs), `${num(signups)} criaram conta · app em ${market === 'br' ? 'português' : 'inglês'}, todas as origens`),
       ].join('');
 
-      const ig = postsIn('instagram'), tt = postsIn('tiktok');
+      const ig = postsIn(IG), tt = postsIn(TT);
       const avg = (list) => (list.length ? Math.round(list.reduce((s, x) => s + Number(x.views || 0), 0) / list.length) : null);
       const er = (list) => pct(list.reduce((s, x) => s + engagement(x), 0), list.reduce((s, x) => s + Number(x.views || 0), 0));
-      const igA = acc('instagram'), ttA = acc('tiktok');
+      const igA = acc(IG), ttA = acc(TT);
 
       $('s-ig').innerHTML = igA.connected ? [
         stat('Seguidores', num(igF.now), hint(igF.delta)),
@@ -782,26 +801,27 @@
       $('s-tt').innerHTML = ttA.connected ? [
         stat('Seguidores', num(ttF.now), hint(ttF.delta)),
         stat('Visualizações', num(ttPeriodViews), ttViews.delta != null ? 'crescimento no período' : 'dos vídeos postados no período'),
-        stat('Curtidas totais', num(growth('tiktok', 'likes_total').now), hint(growth('tiktok', 'likes_total').delta)),
+        stat('Curtidas totais', num(growth(TT, 'likes_total').now), hint(growth(TT, 'likes_total').delta)),
         stat('Vídeos no período', num(tt.length), `média de ${num(avg(tt))} visualizações`),
         stat('Engajamento', er(tt), 'dos vídeos do período'),
       ].join('') : '<p class="muted">Conecte o TikTok para ver os números.</p>';
 
-      bars('ch-ig-f', series(carried('instagram', 'followers')), num);
-      bars('ch-tt-f', series(carried('tiktok', 'followers')), num);
-      bars('ch-ig-v', series(daily('instagram', 'views')), num);
-      bars('ch-ig-l', series(daily('instagram', 'link_taps')), num);
+      bars('ch-ig-f', series(carried(IG, 'followers')), num);
+      bars('ch-tt-f', series(carried(TT, 'followers')), num);
+      bars('ch-ig-v', series(daily(IG, 'views')), num);
+      bars('ch-ig-l', series(daily(IG, 'link_taps')), num);
       renderPosts();
     }
 
     function renderPosts() {
       const plat = $('p-plat').value, sort = $('p-sort').value;
       const key = { posted_at: (x) => Date.parse(x.posted_at), views: (x) => Number(x.views || 0), shares: (x) => Number(x.shares || 0), eng: (x) => (x.views ? engagement(x) / x.views : 0) }[sort];
-      const list = social.posts.filter((x) => (!plat || x.platform === plat) && inPeriod(x.posted_at)).sort((a, b) => key(b) - key(a));
+      const mine = [k('instagram'), k('tiktok')];
+      const list = social.posts.filter((x) => (plat ? x.platform === k(plat) : mine.includes(x.platform)) && inPeriod(x.posted_at)).sort((a, b) => key(b) - key(a));
       $('p-count').textContent = `${list.length} posts no período`;
       $('p-rows').innerHTML = list.map((x) => `<tr>
         <td><a class="post" href="${esc(x.url)}" target="_blank" rel="noopener">${x.thumb ? `<img src="${esc(x.thumb)}" alt="" loading="lazy" />` : '<img alt="" />'}<div><span>${esc(x.caption || '(sem legenda)')}</span><small class="muted">${fmtDate(x.posted_at)}</small></div></a></td>
-        <td>${ICONS[x.platform]} ${NAMES[x.platform]}</td>
+        <td>${ICONS[x.platform]} ${NAMES[x.platform.replace('_br', '')]}</td>
         <td><b>${num(x.views)}</b></td><td>${num(x.likes)}</td><td>${num(x.comments)}</td><td>${num(x.shares)}</td><td>${num(x.saves)}</td>
         <td>${x.views ? pct(engagement(x), x.views) : '—'}</td></tr>`).join('') || '<tr><td colspan="8" class="muted">Nenhum post no período.</td></tr>';
     }
@@ -836,9 +856,9 @@
     let cfgPlatform = null;
     function openCfg(p) {
       cfgPlatform = p;
-      const s = SETUP[p];
+      const s = SETUP[p.replace('_br', '')];
       $('cfg-title').textContent = `${ICONS[p]} Conectar ${NAMES[p]}`;
-      $('cfg-steps').innerHTML = s.steps(social.redirect[p] || '').map((t) => `<li>${t}</li>`).join('');
+      $('cfg-steps').innerHTML = s.steps(social.redirect[p.replace('_br', '')] || '').map((t) => `<li>${t}</li>`).join('');
       $('cfg-id-label').textContent = s.id;
       $('cfg-secret-label').textContent = s.secret;
       $('cfg-id').value = acc(p).client_id || '';
@@ -867,6 +887,7 @@
     // Back from Instagram/TikTok authorization
     (() => {
       const q = new URLSearchParams(location.search);
+      if (/_br$/.test(q.get('connected') || q.get('platform') || '')) { market = 'br'; document.querySelectorAll('#mkt button').forEach((x) => x.classList.toggle('on', x.dataset.mkt === 'br')); }
       if (q.has('connected')) $('s-banner').innerHTML = `<div class="banner ok">✅ ${NAMES[q.get('connected')] || ''} conectado! Os números já foram puxados.</div>`;
       if (q.has('social_error')) $('s-banner').innerHTML = `<div class="banner err">Não foi possível conectar o ${NAMES[q.get('platform')] || ''}: ${esc(q.get('social_error'))}</div>`;
       if (q.has('connected') || q.has('social_error')) history.replaceState(null, '', location.pathname + '#social');

@@ -68,6 +68,15 @@
     .steps { padding-left: 20px; font-size: 14px; line-height: 1.5; } .steps li { margin-bottom: 6px; }
     .copy { display: flex; gap: 6px; margin: 4px 0; } .copy input { margin: 0 !important; font-size: 12px !important; }
     .stat .arrow { color: var(--muted); font-size: 12px; }
+    body > .wrap { max-width: 1320px; }
+    th { white-space: nowrap; }
+    .pill { white-space: nowrap; }
+    table.users { min-width: 900px; }
+    table.users td { padding: 10px 12px; }
+    table.users .sub { display: block; color: var(--muted); font-size: 12px; margin-top: 3px; white-space: nowrap; }
+    table.users .who { max-width: 280px; }
+    table.users .who b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    table.users .act { width: 1%; white-space: nowrap; text-align: right; }
   </style>
 </head>
 <body>
@@ -203,9 +212,9 @@
         <button class="btn small ghost" id="b-clear">Limpar seleção</button>
       </div>
       <div class="table-wrap">
-        <table>
+        <table class="users">
           <thead>
-            <tr><th><input type="checkbox" id="all" title="Selecionar todos da lista" /></th><th>Usuário</th><th>Plano</th><th>Assinou em</th><th>Válido até</th><th>Indicações</th><th>Idioma</th><th>Desde</th><th>Último acesso</th><th>Uso de IA</th><th></th></tr>
+            <tr><th><input type="checkbox" id="all" title="Selecionar todos da lista" /></th><th>Usuário</th><th>Plano</th><th>Último acesso</th><th>Uso de IA</th><th>Indicações</th><th>Idioma</th><th>Desde</th><th></th></tr>
           </thead>
           <tbody id="rows"></tbody>
         </table>
@@ -522,24 +531,22 @@
           : u.premium ? `<span class="pill paid">${u.plan === 'annual' ? 'Anual' : 'Mensal'}</span>`
           : '<span class="pill">Grátis</span>';
         const until = u.courtesy ? u.courtesy_until : u.premium_until;
-        const who = u.email ? `<b>${esc(u.email)}</b>` : '<span class="muted">Visitante</span>';
+        const who = u.email ? `<b title="${esc(u.email)}">${esc(u.email)}</b>` : '<span class="muted">Visitante</span>';
         return `<tr class="${selected.has(u.id) ? 'sel' : ''}">
           <td><input type="checkbox" data-pick="${u.id}" ${selected.has(u.id) ? 'checked' : ''} /></td>
-          <td>${who}${u.is_test ? ' <span class="pill">🧪 teste</span>' : ''}<br><span class="muted">${esc(u.name || '')} · código ${esc(u.referral_code)}</span>${u.courtesy_note ? `<br><span class="muted">📝 ${esc(u.courtesy_note)}</span>` : ''}</td>
-          <td>${plan}</td>
-          <td>${fmtDate(u.subscribed_at)}</td>
-          <td>${fmtDate(until)}</td>
-          <td>${u.invited.joined} entraram · ${u.invited.subscribed} assinaram</td>
-          <td>${esc(u.language || '—')} ${esc(u.currency || '')}</td>
-          <td>${fmtDate(u.created_at)}</td>
-          <td>${isUsing(u) ? '<span class="pill using">🟢 Usando</span>' : '<span class="pill">⚪ Parado</span>'}<br><span class="muted">${ago(u.last_seen_at)}</span></td>
-          <td>${u.ai_calls ? `<b>${u.ai_calls}</b> uso${u.ai_calls > 1 ? 's' : ''}<br><span class="muted">${usd(u.ai_usd, 3)}${u.last_ai_at ? ' · ' + ago(u.last_ai_at) : ''}</span>` : '<span class="muted">—</span>'}</td>
-          <td style="white-space:nowrap">
-            <button class="btn small" data-give="${u.id}">🎁 Cortesia</button>
+          <td class="who">${who}${u.is_test ? ' <span class="pill">🧪 teste</span>' : ''}<span class="sub">${u.name ? esc(u.name) + ' · ' : ''}código ${esc(u.referral_code)}</span>${u.courtesy_note ? `<span class="sub">📝 ${esc(u.courtesy_note)}</span>` : ''}</td>
+          <td>${plan}${u.subscribed_at ? `<span class="sub">assinou ${fmtDate(u.subscribed_at)}</span>` : ''}${until ? `<span class="sub">até ${fmtDate(until)}</span>` : ''}</td>
+          <td>${isUsing(u) ? '<span class="pill using">🟢 Usando</span>' : '<span class="pill">⚪ Parado</span>'}<span class="sub">${ago(u.last_seen_at)}</span></td>
+          <td>${u.ai_calls ? `<b>${u.ai_calls}</b> uso${u.ai_calls > 1 ? 's' : ''}<span class="sub">${usd(u.ai_usd, 3)}${u.last_ai_at ? ' · ' + ago(u.last_ai_at) : ''}</span>` : '<span class="muted">—</span>'}</td>
+          <td>${u.invited.joined || u.invited.subscribed ? `${u.invited.joined} entraram<span class="sub">${u.invited.subscribed} assinaram</span>` : '<span class="muted">—</span>'}</td>
+          <td style="white-space:nowrap">${esc(u.language || '—')} <span class="muted">${esc(u.currency || '')}</span></td>
+          <td style="white-space:nowrap">${fmtDate(u.created_at)}</td>
+          <td class="act">
+            <button class="btn small" data-give="${u.id}" title="Dar cortesia (Premium grátis)">🎁 Cortesia</button>
             ${u.courtesy ? `<button class="btn small ghost" data-remove="${u.id}">Remover</button>` : ''}
           </td>
         </tr>`;
-      }).join('') || '<tr><td colspan="11" class="muted">Nenhum usuário encontrado.</td></tr>';
+      }).join('') || '<tr><td colspan="8" class="muted">Nenhum usuário encontrado.</td></tr>';
       visible = list;
       $('all').checked = list.length > 0 && list.every((u) => selected.has(u.id));
       $('bulk').hidden = selected.size === 0;

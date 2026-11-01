@@ -139,6 +139,12 @@
       <div class="stats" id="subs"></div>
       <h3 class="sec">👥 Usuários</h3>
       <div class="stats" id="people"></div>
+      <h3 class="sec">📝 Convites para criar conta</h3>
+      <div class="table-wrap"><table class="small">
+        <thead><tr><th>Onde apareceu</th><th>Vezes mostrado</th><th>Pessoas que viram</th><th>Criaram conta</th><th>Taxa</th></tr></thead>
+        <tbody id="signup-rows"></tbody>
+      </table></div>
+      <p class="muted note">Quem cria conta ganha 7 dias de Premium grátis (1 vez por pessoa e por celular). Registro a partir de 02/11/2026. "Taxa" = criaram conta ÷ pessoas que viram.</p>
 
       <div class="charts">
         <div class="chart card"><h4>Custo de IA por dia <span class="muted" id="ai-total"></span></h4><div class="bars" id="ch-ai"></div></div>
@@ -334,7 +340,7 @@
 
     const DAY = 864e5;
     const PRICE = { monthly: 5.99, annual: 29.99 };
-    const FEATURES = { roast: 'Roast inicial (análise do extrato)', log: 'Registrar gasto (voz/texto)', month: 'Nota do mês', checkin: 'Check-in do dia', nudges: 'Lembretes' };
+    const FEATURES = { roast: 'Roast inicial (análise do extrato)', log: 'Registrar gasto (voz/texto)', log_plain: 'Registrar gasto (sem zoeira)', month: 'Nota do mês', checkin: 'Check-in do dia', nudges: 'Lembretes' };
     const EVENTS = {
       INITIAL_PURCHASE: 'Assinou', RENEWAL: 'Renovou', CANCELLATION: 'Cancelou', EXPIRATION: 'Expirou',
       UNCANCELLATION: 'Desistiu de cancelar', PRODUCT_CHANGE: 'Trocou de plano', BILLING_ISSUE: 'Problema no pagamento', TEST: 'Teste do RevenueCat',
@@ -448,6 +454,19 @@
         stat('Usaram a IA', users.filter((u) => u.ai_calls > 0).length, 'desde 31/10'),
         stat('Conversão', users.length ? ((paying.length / users.length) * 100).toFixed(1) + '%' : '—', 'pagantes ÷ usuários'),
       ].join('');
+
+      // Sign-up invitations in the period, per place in the app
+      const SOURCES = { after_log: 'Depois do 1º registro', after_roast: 'Depois do roast do extrato', home_banner: 'Faixa na tela inicial', invite: 'Cartão de convite', me: 'Aba "Eu"' };
+      const su = {};
+      (data.signupEvents || []).filter((e) => inPeriod(e.at)).forEach((e) => {
+        su[e.source] ??= { shown: 0, people: new Set(), signups: new Set() };
+        if (e.event === 'shown') { su[e.source].shown++; su[e.source].people.add(e.user_id); }
+        else su[e.source].signups.add(e.user_id);
+      });
+      $('signup-rows').innerHTML = Object.entries(su).sort((a, b) => b[1].signups.size - a[1].signups.size).map(([k, r]) => `<tr>
+        <td><b>${esc(SOURCES[k] || k)}</b></td><td>${r.shown}</td><td>${r.people.size}</td><td>${r.signups.size}</td>
+        <td>${r.people.size ? Math.round((r.signups.size / r.people.size) * 100) + '%' : '—'}</td></tr>`).join('')
+        || '<tr><td colspan="5" class="muted">Ainda sem dados neste período.</td></tr>';
 
       const aiByDay = Object.fromEntries(data.aiDaily.map((r) => [r.day, Number(r.usd)]));
       bars('ch-ai', series(aiByDay), (v) => usd(v, 3));

@@ -139,6 +139,13 @@
       <div class="stats" id="subs"></div>
       <h3 class="sec">👥 Usuários</h3>
       <div class="stats" id="people"></div>
+      <h3 class="sec">🚦 Funil de novos usuários</h3>
+      <div class="table-wrap"><table class="small">
+        <thead><tr><th>Etapa</th><th>Pessoas</th><th>% de quem abriu</th><th>% da etapa anterior</th></tr></thead>
+        <tbody id="funnel-rows"></tbody>
+      </table></div>
+      <p class="muted note">Conta só quem abriu o app pela primeira vez no período (versão 1.3.7 em diante). "Voltou outro dia" = abriu o app num dia depois do primeiro. Mostra onde as pessoas desistem.</p>
+
       <h3 class="sec">📝 Convites para criar conta</h3>
       <div class="table-wrap"><table class="small">
         <thead><tr><th>Onde apareceu</th><th>Vezes mostrado</th><th>Pessoas que viram</th><th>Criaram conta</th><th>Taxa</th></tr></thead>
@@ -467,6 +474,29 @@
         <td><b>${esc(SOURCES[k] || k)}</b></td><td>${r.shown}</td><td>${r.people.size}</td><td>${r.signups.size}</td>
         <td>${r.people.size ? Math.round((r.signups.size / r.people.size) * 100) + '%' : '—'}</td></tr>`).join('')
         || '<tr><td colspan="5" class="muted">Ainda sem dados neste período.</td></tr>';
+
+      // New-user funnel (app 1.3.7+): only people whose first onboarding screen was in the period
+      const ae = data.appEvents || [];
+      const starters = new Set(ae.filter((e) => e.event === 'onboarding_step' && e.props?.step === 'language' && inPeriod(e.at)).map((e) => e.user_id));
+      const who = (f) => new Set(ae.filter((e) => starters.has(e.user_id) && f(e)).map((e) => e.user_id));
+      const logDays = {};
+      ae.filter((e) => starters.has(e.user_id) && (e.event === 'log' || e.event === 'first_log') && (e.props?.entries ?? 0) > 0)
+        .forEach((e) => { (logDays[e.user_id] ??= new Set()).add(dayKey(e.at)); });
+      const steps = [
+        ['📲 Abriram o app', starters],
+        ['🍔 Escolheram os vícios', who((e) => e.event === 'onboarding_step' && e.props?.step === 'guess')],
+        ['🔥 Viram o primeiro roast', who((e) => e.event === 'onboarding_step' && e.props?.step === 'roast')],
+        ['✅ Terminaram a apresentação', who((e) => e.event === 'onboarding_done')],
+        ['🔔 Ativaram lembretes', who((e) => e.event === 'push_permission' && e.props?.granted)],
+        ['🎙️ Registraram o 1º gasto', who((e) => e.event === 'first_log')],
+        ['📅 Voltaram outro dia', who((e) => e.event === 'app_open' && (e.props?.day ?? 0) >= 1)],
+        ['🏆 Registraram em 2+ dias', new Set(Object.entries(logDays).filter(([, d]) => d.size >= 2).map(([u]) => u))],
+      ];
+      $('funnel-rows').innerHTML = starters.size ? steps.map(([label, set], i) => {
+        const n = set.size, prev = i ? steps[i - 1][1].size : n;
+        return `<tr><td><b>${label}</b></td><td>${n}</td><td>${Math.round((n / starters.size) * 100)}%</td>
+          <td>${i ? (prev ? Math.round((n / prev) * 100) + '%' : '—') : ''}</td></tr>`;
+      }).join('') : '<tr><td colspan="4" class="muted">Ainda sem dados (começa a contar com a versão 1.3.7 do app).</td></tr>';
 
       const aiByDay = Object.fromEntries(data.aiDaily.map((r) => [r.day, Number(r.usd)]));
       bars('ch-ai', series(aiByDay), (v) => usd(v, 3));

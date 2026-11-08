@@ -488,6 +488,8 @@
         ['🔥 Viram o primeiro roast', who((e) => e.event === 'onboarding_step' && e.props?.step === 'roast')],
         ['✅ Terminaram a apresentação', who((e) => e.event === 'onboarding_done')],
         ['🔔 Ativaram lembretes', who((e) => e.event === 'push_permission' && e.props?.granted)],
+        ['💳 Viram a oferta', who((e) => e.event === 'paywall_view')],
+        ['⭐ Começaram teste / assinaram', who((e) => e.event === 'purchase')],
         ['🎙️ Registraram o 1º gasto', who((e) => e.event === 'first_log')],
         ['📅 Voltaram outro dia', who((e) => e.event === 'app_open' && (e.props?.day ?? 0) >= 1)],
         ['🏆 Registraram em 2+ dias', new Set(Object.entries(logDays).filter(([, d]) => d.size >= 2).map(([u]) => u))],

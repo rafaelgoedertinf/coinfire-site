@@ -477,7 +477,7 @@
 
       // New-user funnel (app 1.3.7+): only people whose first onboarding screen was in the period
       const ae = data.appEvents || [];
-      const starters = new Set(ae.filter((e) => e.event === 'onboarding_step' && e.props?.step === 'language' && inPeriod(e.at)).map((e) => e.user_id));
+      const starters = new Set(ae.filter((e) => e.event === 'onboarding_step' && e.props?.n === 0 && inPeriod(e.at)).map((e) => e.user_id));
       const who = (f) => new Set(ae.filter((e) => starters.has(e.user_id) && f(e)).map((e) => e.user_id));
       const logDays = {};
       ae.filter((e) => starters.has(e.user_id) && (e.event === 'log' || e.event === 'first_log') && (e.props?.entries ?? 0) > 0)

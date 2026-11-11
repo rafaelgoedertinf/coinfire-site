@@ -30,7 +30,7 @@
     .login input { width: 100%; background: var(--card); color: var(--text); border: 1px solid var(--line); border-radius: 999px; padding: 14px 18px; font: 17px inherit; margin: 10px 0; text-align: center; }
     dialog { background: var(--card); color: var(--text); border: 1px solid var(--line); border-radius: 22px; padding: 24px; max-width: 420px; width: 92vw; }
     dialog::backdrop { background: #000a; }
-    dialog input, dialog select { width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 12px; padding: 12px; font: 16px inherit; margin: 6px 0 12px; }
+    dialog input, dialog select, #a-setup input { width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 12px; padding: 12px; font: 16px inherit; margin: 6px 0 12px; }
     .row-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px; }
     .sec { margin: 26px 0 0; font-size: 18px; }
     .stat small { display: block; color: var(--muted); font-size: 12px; margin-top: 4px; }
@@ -68,6 +68,29 @@
     .steps { padding-left: 20px; font-size: 14px; line-height: 1.5; } .steps li { margin-bottom: 6px; }
     .copy { display: flex; gap: 6px; margin: 4px 0; } .copy input { margin: 0 !important; font-size: 12px !important; }
     .stat .arrow { color: var(--muted); font-size: 12px; }
+
+    /* ---- Anúncios ---- */
+    .sw { position: relative; display: inline-block; width: 42px; height: 24px; flex: none; }
+    .sw input { opacity: 0; width: 0; height: 0; }
+    .sw i { position: absolute; inset: 0; background: #3a3a42; border-radius: 999px; cursor: pointer; transition: .2s; }
+    .sw i::before { content: ""; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: .2s; }
+    .sw input:checked + i { background: #16a34a; } .sw input:checked + i::before { transform: translateX(18px); }
+    .sw input:disabled + i { opacity: .5; cursor: wait; }
+    .pill.on { background: #065f46; color: #a7f3d0; } .pill.off { background: #3a3a42; color: #d4d4d8; } .pill.warn { background: #713f12; color: #fde68a; }
+    .creatives { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; margin-top: 12px; }
+    .cr { padding: 0; overflow: hidden; display: flex; flex-direction: column; }
+    .cr .th { position: relative; aspect-ratio: 4 / 5; background: var(--card-hi); display: block; }
+    .cr .th img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .cr .th .pill { position: absolute; top: 10px; left: 10px; }
+    .cr .body { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+    .cr .head { display: flex; gap: 10px; align-items: flex-start; justify-content: space-between; }
+    .cr .head b { font-size: 14px; line-height: 1.25; overflow-wrap: anywhere; } .cr .head small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+    .cr dl { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; margin: 0; font-size: 13px; }
+    .cr dt { color: var(--muted); font-size: 11px; } .cr dd { margin: 0; font-weight: 800; }
+    .chart-tools { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 12px; }
+    .chart-tools select { background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: 7px 10px; font: 14px inherit; }
+    .bars.tall { height: 200px; }
+    .camp-name { font-weight: 800; } .camp-name small { display: block; color: var(--muted); font-weight: 500; font-size: 12px; margin-top: 2px; }
     body > .wrap { max-width: 1320px; }
     th { white-space: nowrap; }
     .pill { white-space: nowrap; }
@@ -115,6 +138,7 @@
       <div class="tabs" id="tabs">
         <button data-tab="app" class="on">📊 App</button>
         <button data-tab="social">📱 Redes sociais</button>
+        <button data-tab="ads">📣 Anúncios</button>
       </div>
       <div class="toolbar sticky">
         <label class="muted">Período</label>
@@ -273,6 +297,75 @@
           <p class="muted note">Dados das APIs oficiais do Instagram e do TikTok. Atualiza sozinho a cada 6 horas, ou na hora pelo botão "Sincronizar". O histórico de seguidores começa no dia em que a conta foi conectada. Engajamento = (curtidas + comentários + compartilhamentos + salvos) ÷ visualizações.</p>
         </div>
       </div>
+
+      <div id="tab-ads" hidden>
+        <div id="a-banner"></div>
+        <div id="a-setup" class="card" hidden style="padding:22px;margin-top:16px">
+          <h3 style="margin:0 0 6px">📣 Conectar a conta de anúncios do Meta</h3>
+          <p class="muted" style="margin:0 0 10px">Faça uma vez só. O token fica guardado no servidor e nunca aparece no navegador.</p>
+          <ol class="steps">
+            <li>Em <a href="https://business.facebook.com/settings/ad-accounts" target="_blank" rel="noopener">business.facebook.com → Configurações → Contas de anúncios</a>, abra a conta do CoinFire e copie o <b>ID da conta</b> (só números).</li>
+            <li>Em <b>Usuários → Usuários do sistema</b>, crie um usuário do sistema “CoinFire Admin” (função <b>Admin</b>) e, em <b>Atribuir ativos</b>, dê a ele <b>controle total</b> da conta de anúncios do CoinFire.</li>
+            <li>Clique em <b>Gerar novo token</b>, escolha o app do CoinFire, validade <b>Nunca</b> e marque as permissões <b>ads_read</b> e <b>ads_management</b>. Copie o token.</li>
+            <li>Cole os dois abaixo e clique em <b>Salvar</b>.</li>
+          </ol>
+          <label class="muted" style="font-size:13px">ID da conta de anúncios</label>
+          <input id="a-id" class="input" inputmode="numeric" autocomplete="off" placeholder="Ex.: 1234567890123456" />
+          <label class="muted" style="font-size:13px">Token do usuário do sistema <span id="a-tok-hint"></span></label>
+          <input id="a-token" class="input" type="password" autocomplete="off" />
+          <div class="msg" id="a-msg"></div>
+          <div class="row-actions" style="justify-content:flex-start">
+            <button class="btn small" id="a-save">Salvar</button>
+            <button class="btn small ghost" id="a-cancel" hidden>Cancelar</button>
+          </div>
+        </div>
+        <div id="a-body" hidden>
+          <div class="toolbar" style="margin-top:16px">
+            <b id="a-acc" style="font-size:16px"></b><span class="muted" id="a-acc-info" style="font-size:13px"></span>
+            <span style="flex:1"></span>
+            <a class="btn small ghost" id="a-manager" target="_blank" rel="noopener">Abrir no Gerenciador de Anúncios ↗</a>
+            <button class="btn small ghost" id="a-cfg">⚙️</button>
+          </div>
+          <div class="stats" id="a-stats"></div>
+
+          <h3 class="sec">📈 Desempenho por dia</h3>
+          <div class="chart card" style="margin-top:12px">
+            <div class="chart-tools">
+              <select id="a-metric">
+                <option value="spend">Gasto (R$)</option>
+                <option value="clicks">Cliques no link</option>
+                <option value="impressions">Impressões</option>
+                <option value="cpc">Custo por clique</option>
+                <option value="ctr">CTR (%)</option>
+                <option value="installs">Instalações</option>
+              </select>
+              <select id="a-camp"><option value="">Todas as campanhas</option></select>
+            </div>
+            <div class="bars tall" id="ch-ads"></div>
+          </div>
+
+          <h3 class="sec">🎯 Campanhas</h3>
+          <div class="table-wrap" style="margin-top:12px"><table>
+            <thead><tr><th>Ligada</th><th>Campanha</th><th>Status</th><th>Orçamento</th><th>Gasto</th><th>Impressões</th><th>Alcance</th><th>Cliques</th><th>CTR</th><th>Custo/clique</th><th>CPM</th><th>Instalações</th></tr></thead>
+            <tbody id="a-rows"></tbody>
+          </table></div>
+
+          <h3 class="sec">🎬 Criativos</h3>
+          <div class="toolbar" style="margin-top:10px">
+            <label class="check"><input type="checkbox" id="a-only" checked /> Só os que estão rodando</label>
+            <select id="a-sort">
+              <option value="spend">Mais gasto</option>
+              <option value="ctr">Maior CTR</option>
+              <option value="cpc">Menor custo por clique</option>
+              <option value="hook">Maior gancho (3s)</option>
+              <option value="clicks">Mais cliques</option>
+            </select>
+            <span class="muted" id="a-count" style="font-size:13px"></span>
+          </div>
+          <div class="creatives" id="a-ads"></div>
+          <p class="muted note">Dados ao vivo da API de Marketing do Meta, no período escolhido lá em cima. CTR = cliques no link ÷ impressões. Gancho = quem assistiu 3 segundos do vídeo ÷ impressões. ThruPlay = assistiu até o fim (ou 15s). Instalações só aparecem quando o app tiver o SDK do Meta; até lá, veja as instalações em Play Console → Aquisição de usuários.</p>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -412,7 +505,9 @@
         $('setpw').hidden = false;
         render();
         if (location.hash === '#social') showTab('social');
+        else if (location.hash === '#ads') showTab('ads');
         else if (socialLoaded) loadSocial();
+        if (adsLoaded) loadAds();
       } catch (e) {
         showLogin(e.message === 'forbidden' ? 'Este e-mail não tem acesso de administrador.' : '');
       }
@@ -736,9 +831,11 @@
       document.querySelectorAll('#tabs button').forEach((b) => b.classList.toggle('on', b.dataset.tab === tab));
       $('tab-app').hidden = tab !== 'app';
       $('tab-social').hidden = tab !== 'social';
+      $('tab-ads').hidden = tab !== 'ads';
       document.querySelectorAll('.only-app').forEach((el) => (el.hidden = tab !== 'app'));
-      if (location.hash !== '#' + tab) history.replaceState(null, '', tab === 'social' ? '#social' : location.pathname);
+      if (location.hash !== '#' + tab) history.replaceState(null, '', tab === 'app' ? location.pathname : '#' + tab);
       if (tab === 'social' && !socialLoaded) loadSocial();
+      if (tab === 'ads' && !adsLoaded) loadAds();
     }
     document.querySelectorAll('#tabs button').forEach((b) => (b.onclick = () => showTab(b.dataset.tab)));
 
@@ -934,6 +1031,180 @@
       const { url } = await socialApi('connect', { platform: p });
       location.href = url;
     }
+
+
+    // ---------- Anúncios (Meta Ads) ----------
+    let ads = null;
+    let adsLoaded = false;
+    let adsDays = 0;
+    const STATUS = {
+      ACTIVE: ['Rodando', 'on'], PAUSED: ['Pausada', 'off'], CAMPAIGN_PAUSED: ['Campanha pausada', 'off'], ADSET_PAUSED: ['Conjunto pausado', 'off'],
+      PENDING_REVIEW: ['Em análise', 'warn'], IN_PROCESS: ['Processando', 'warn'], WITH_ISSUES: ['Com problema', 'bad'], DISAPPROVED: ['Reprovado', 'bad'],
+      PREAPPROVED: ['Pré-aprovado', 'warn'], ARCHIVED: ['Arquivada', 'off'], DELETED: ['Excluída', 'off'],
+    };
+    const statusPill = (s) => { const [t, c] = STATUS[s] || [s || '—', 'off']; return `<span class="pill ${c}">${esc(t)}</span>`; };
+    const cur = () => (ads?.account?.currency || 'BRL');
+    const brl = (v, dec = 2) => (v == null ? '—' : Number(v).toLocaleString('pt-BR', { style: 'currency', currency: cur(), minimumFractionDigits: dec, maximumFractionDigits: dec }));
+    const pc = (v) => (v == null ? '—' : Number(v).toLocaleString('pt-BR', { maximumFractionDigits: 2 }) + '%');
+
+    async function adsApi(action, extra = {}) {
+      const { data: s } = await db.auth.getSession();
+      const res = await fetch(`${COINFIRE.supabaseUrl}/functions/v1/ads`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: COINFIRE.supabaseKey, Authorization: `Bearer ${s.session?.access_token}` },
+        body: JSON.stringify({ action, ...extra }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error || res.status);
+      return json;
+    }
+
+    async function loadAds() {
+      $('a-banner').innerHTML = '<p class="muted" style="margin-top:16px">Carregando anúncios…</p>';
+      try {
+        adsDays = periodDays();
+        ads = await adsApi('stats', { days: adsDays });
+        adsLoaded = true;
+        $('a-banner').innerHTML = '';
+        if (!ads.configured) return showAdsSetup(false);
+        $('a-setup').hidden = true;
+        $('a-body').hidden = false;
+        renderAds();
+      } catch (e) {
+        $('a-banner').innerHTML = `<div class="banner err">Não foi possível carregar os anúncios: ${esc(e.message)}. Se o token expirou ou perdeu acesso, clique em ⚙️ e salve um novo.</div>`;
+        $('a-body').hidden = true;
+        showAdsSetup(true);
+      }
+    }
+
+    function showAdsSetup(editing) {
+      $('a-setup').hidden = false;
+      $('a-body').hidden = !(editing && ads?.configured);
+      $('a-cancel').hidden = !(editing && ads?.configured);
+      $('a-tok-hint').textContent = editing ? '(deixe vazio para manter o atual)' : '';
+      $('a-msg').textContent = '';
+      if (ads?.account?.id) $('a-id').value = ads.account.id.replace('act_', '');
+    }
+    $('a-cfg').onclick = () => showAdsSetup(true);
+    $('a-cancel').onclick = () => { $('a-setup').hidden = true; };
+    $('a-save').onclick = async () => {
+      $('a-save').disabled = true;
+      $('a-msg').className = 'msg'; $('a-msg').textContent = 'Verificando com o Meta…';
+      try {
+        const r = await adsApi('config', { ad_account_id: $('a-id').value, access_token: $('a-token').value });
+        $('a-token').value = '';
+        $('a-msg').className = 'msg ok'; $('a-msg').textContent = `Conectado: ${r.name} (${r.currency}).`;
+        await loadAds();
+      } catch (e) {
+        $('a-msg').className = 'msg err'; $('a-msg').textContent = e.message;
+      } finally { $('a-save').disabled = false; }
+    };
+
+    const campsShown = () => ads.campaigns.filter((c) => !['ARCHIVED', 'DELETED'].includes(c.effective_status));
+    function renderAds() {
+      const a = ads.account;
+      const accStatus = { 1: 'ativa', 2: 'desativada', 3: 'pagamento pendente', 7: 'em análise', 8: 'acerto pendente', 9: 'período de carência', 100: 'encerramento pendente', 101: 'encerrada' }[a.status] || `status ${a.status}`;
+      $('a-acc').textContent = a.name;
+      $('a-acc-info').textContent = `${a.id} · conta ${accStatus} · total já gasto ${brl(a.amount_spent)}`;
+      $('a-manager').href = `https://adsmanager.facebook.com/adsmanager/manage/campaigns?act=${a.id.replace('act_', '')}`;
+      if (a.status !== 1) $('a-banner').innerHTML = `<div class="banner err">⚠️ A conta de anúncios está ${accStatus}. Resolva no Gerenciador de Anúncios.</div>`;
+
+      const cs = campsShown();
+      const t = cs.reduce((s, c) => ({ spend: s.spend + c.spend, imp: s.imp + c.impressions, reach: s.reach + c.reach, clicks: s.clicks + c.clicks, inst: s.inst + c.installs }), { spend: 0, imp: 0, reach: 0, clicks: 0, inst: 0 });
+      const running = cs.filter((c) => c.effective_status === 'ACTIVE').length;
+      $('a-stats').innerHTML = [
+        stat('Gasto no período', brl(t.spend)),
+        stat('Impressões', num(t.imp)),
+        stat('Pessoas alcançadas', num(t.reach), 'soma por campanha'),
+        stat('Cliques no link', num(t.clicks)),
+        stat('CTR', pc(t.imp ? (100 * t.clicks) / t.imp : null), 'cliques ÷ impressões'),
+        stat('Custo por clique', brl(t.clicks ? t.spend / t.clicks : null)),
+        stat('Campanhas rodando', `${running}/${cs.length}`),
+        t.inst ? stat('Custo por instalação', brl(t.spend / t.inst), `${num(t.inst)} instalações`) : '',
+      ].join('');
+
+      const sel = $('a-camp').value;
+      $('a-camp').innerHTML = '<option value="">Todas as campanhas</option>' + cs.map((c) => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
+      if (cs.some((c) => c.id === sel)) $('a-camp').value = sel;
+      renderAdsChart();
+
+      $('a-rows').innerHTML = cs.length
+        ? cs.map((c) => `<tr>
+            <td><label class="sw" title="Ligar / pausar"><input type="checkbox" data-adstatus="${c.id}" data-kind="campanha" data-name="${esc(c.name)}" ${c.status === 'ACTIVE' ? 'checked' : ''} /><i></i></label></td>
+            <td class="camp-name">${esc(c.name)}<small>${esc(c.objective || '')}</small></td>
+            <td>${statusPill(c.effective_status)}</td>
+            <td style="white-space:nowrap">${c.daily_budget != null ? brl(c.daily_budget) + '/dia' : c.lifetime_budget != null ? brl(c.lifetime_budget) + ' total' : '<span class="muted">no conjunto</span>'}</td>
+            <td>${brl(c.spend)}</td><td>${num(c.impressions)}</td><td>${num(c.reach)}</td><td>${num(c.clicks)}</td>
+            <td>${pc(c.ctr)}</td><td>${brl(c.cpc)}</td><td>${brl(c.cpm)}</td><td>${c.installs ? num(c.installs) : '—'}</td>
+          </tr>`).join('')
+        : '<tr><td colspan="12" class="muted">Nenhuma campanha ainda.</td></tr>';
+      renderCreatives();
+      bindSwitches();
+    }
+
+    function renderAdsChart() {
+      const camp = $('a-camp').value;
+      const m = $('a-metric').value;
+      const rows = ads.daily.filter((r) => !camp || r.campaign_id === camp);
+      const by = {};
+      for (const r of rows) {
+        const d = (by[r.day] ||= { spend: 0, clicks: 0, impressions: 0, installs: 0 });
+        d.spend += r.spend; d.clicks += r.clicks; d.impressions += r.impressions; d.installs += r.installs;
+      }
+      const val = (d) => !d ? 0 : m === 'cpc' ? (d.clicks ? d.spend / d.clicks : 0) : m === 'ctr' ? (d.impressions ? (100 * d.clicks) / d.impressions : 0) : d[m];
+      const fmt = m === 'spend' || m === 'cpc' ? (v) => brl(v) : m === 'ctr' ? pc : num;
+      bars('ch-ads', series(Object.fromEntries(Object.entries(by).map(([k, d]) => [k, val(d)]))), fmt);
+    }
+    $('a-metric').onchange = renderAdsChart;
+    $('a-camp').onchange = renderAdsChart;
+
+    function renderCreatives() {
+      const camps = Object.fromEntries(ads.campaigns.map((c) => [c.id, c.name]));
+      let list = ads.ads.filter((x) => !$('a-only').checked || x.effective_status === 'ACTIVE');
+      const k = $('a-sort').value;
+      list = [...list].sort((a, b) => (k === 'cpc' ? (a.cpc ?? 1e9) - (b.cpc ?? 1e9) : (b[k] ?? -1) - (a[k] ?? -1)));
+      $('a-count').textContent = `${list.length} criativo${list.length === 1 ? '' : 's'}`;
+      $('a-ads').innerHTML = list.length
+        ? list.map((x) => `<div class="card cr">
+            <a class="th" ${x.link ? `href="${esc(x.link)}" target="_blank" rel="noopener"` : ''}>${x.thumb ? `<img src="${esc(x.thumb)}" alt="" loading="lazy" />` : ''}${statusPill(x.effective_status)}</a>
+            <div class="body">
+              <div class="head"><div><b>${esc(x.name)}</b><small>${esc(camps[x.campaign_id] || '')}${x.adset ? ' · ' + esc(x.adset) : ''}</small></div>
+                <label class="sw" title="Ligar / pausar"><input type="checkbox" data-adstatus="${x.id}" data-kind="anúncio" data-name="${esc(x.name)}" ${x.status === 'ACTIVE' ? 'checked' : ''} /><i></i></label></div>
+              <dl>
+                <div><dt>Gasto</dt><dd>${brl(x.spend)}</dd></div>
+                <div><dt>Impressões</dt><dd>${num(x.impressions)}</dd></div>
+                <div><dt>Cliques</dt><dd>${num(x.clicks)}</dd></div>
+                <div><dt>CTR</dt><dd>${pc(x.ctr)}</dd></div>
+                <div><dt>Custo/clique</dt><dd>${brl(x.cpc)}</dd></div>
+                <div><dt>CPM</dt><dd>${brl(x.cpm)}</dd></div>
+                <div><dt>Gancho (3s)</dt><dd>${pc(x.hook)}</dd></div>
+                <div><dt>ThruPlay</dt><dd>${num(x.thruplay)}</dd></div>
+              </dl>
+            </div>
+          </div>`).join('')
+        : `<p class="muted">${$('a-only').checked ? 'Nenhum criativo rodando agora.' : 'Nenhum criativo ainda.'}</p>`;
+    }
+    $('a-only').onchange = () => { renderCreatives(); bindSwitches(); };
+    $('a-sort').onchange = () => { renderCreatives(); bindSwitches(); };
+
+    function bindSwitches() {
+      document.querySelectorAll('[data-adstatus]').forEach((el) => (el.onchange = async () => {
+        const on = el.checked;
+        const msg = on
+          ? `Ligar o ${el.dataset.kind} "${el.dataset.name}"? Ele volta a gastar dinheiro conforme o orçamento.`
+          : `Pausar o ${el.dataset.kind} "${el.dataset.name}"?`;
+        if (!confirm(msg)) { el.checked = !on; return; }
+        el.disabled = true;
+        try {
+          await adsApi('set_status', { id: el.dataset.adstatus, status: on ? 'ACTIVE' : 'PAUSED' });
+          await loadAds();
+        } catch (e) {
+          el.checked = !on; el.disabled = false;
+          alert('Não foi possível mudar: ' + e.message);
+        }
+      }));
+    }
+    $('period').addEventListener('change', () => { if (adsLoaded && !$('tab-ads').hidden && periodDays() !== adsDays) loadAds(); else if (adsLoaded) adsLoaded = false; });
 
     // Back from Instagram/TikTok authorization
     (() => {

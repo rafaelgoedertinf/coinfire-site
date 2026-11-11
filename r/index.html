@@ -54,7 +54,7 @@
     const code = (location.pathname.split('/r/')[1] || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 12);
     document.getElementById('code').textContent = code || '------';
     try { sessionStorage.setItem('ref', code); } catch {}
-    if (COINFIRE.appStoreUrl) document.getElementById('get').href = COINFIRE.appStoreUrl;
+    if (COINFIRE.appStoreUrl) document.getElementById('get').href = /android/i.test(navigator.userAgent) && COINFIRE.playUrl ? COINFIRE.playUrl : COINFIRE.appStoreUrl;
     document.getElementById('copy').onclick = async () => {
       try { await navigator.clipboard.writeText(code); } catch {}
       document.getElementById('copy').textContent = LANG === 'pt' ? 'Copiado ✓' : 'Copied ✓';

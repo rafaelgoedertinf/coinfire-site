@@ -4,4 +4,5 @@ window.COINFIRE = {
   supabaseKey: 'sb_publishable_HkUKBjiRUeZvsEAD5qoj7Q_jSd3C8BR',
   // Replace with the App Store link when the app is public
   appStoreUrl: 'https://apps.apple.com/app/id6824480122',
+  playUrl: 'https://play.google.com/store/apps/details?id=com.getcoinfire.app',
 };
